@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"text/template"
 
+	"github.com/philcantcode/goApi/database"
 	"github.com/philcantcode/goApi/utils"
 )
 
@@ -43,20 +44,40 @@ func PlayerHandler(w http.ResponseWriter, r *http.Request) {
 func LocalTrackHandler(w http.ResponseWriter, r *http.Request) {
 	reload()
 
-	dat := struct {
-		Paths []string
-	}{
-		Paths: []string{
-			"C:/",
-			"F:/",
-			"K:/",
-		},
+	data := struct {
+		Selected       string
+		Drives         []string
+		SubFolders     []string
+		TrackedFolders []database.TrackFolders
+	}{}
+
+	pathParam := r.FormValue("path")
+	trackParam := r.FormValue("track")
+	untrackParam := r.FormValue("untrack")
+
+	data.Selected = pathParam
+
+	if pathParam != "" {
+		data.SubFolders = utils.GetFolderLayer(pathParam)
 	}
 
-	var comb struct{
-		localTrackPage,
-		dat,
+	if trackParam != "" {
+		database.TrackFolder(trackParam)
 	}
 
-	locTrackTemplate.ExecuteTemplate(w, "localTracker", localTrackPage)
+	if untrackParam != "" {
+		database.UnTrackFolder(untrackParam)
+	}
+
+	data.TrackedFolders = database.GetTrackedFolders()
+	data.Drives = utils.GetDrives()
+
+	localTrackPage.Contents = data
+	err := locTrackTemplate.ExecuteTemplate(w, "localTracker", localTrackPage)
+
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+
 }

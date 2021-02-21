@@ -1,7 +1,7 @@
 package main
 
+// https://www.wikihow.com/Install-FFmpeg-on-Windows
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,9 +12,6 @@ import (
 
 // Handle incoming web requests and direct them to the folder
 func main() {
-
-	fmt.Println(utils.GetDrives())
-
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", api.IndexHandler)

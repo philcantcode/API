@@ -8,6 +8,8 @@ type page struct {
 	CurrentPath     string
 
 	Year string
+
+	Contents interface{}
 }
 
 var indexPage = page{Year: "2021", PageTitle: "HomePage", PageDescription: "OwO Player Homepage", PreviousPath: "Home", PreviousPathURL: "/", CurrentPath: "Home"}
