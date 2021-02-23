@@ -7,36 +7,9 @@ import (
 	"strings"
 )
 
-type Node struct {
-	Path  string
-	Nodes []Node
-}
-
 type File struct {
 	Name string
 	Path string
-}
-
-// GetFolderTree returns a list of all folders
-func GetFolderTree(parent Node) Node {
-	files, err := ioutil.ReadDir(parent.Path)
-
-	if err != nil {
-		return parent
-	}
-
-	for _, file := range files {
-		if file.IsDir() {
-
-			var subdir Node
-			subdir.Path = filepath.Join(parent.Path, file.Name())
-			subdir.Nodes = make([]Node, 0)
-
-			parent.Nodes = append(parent.Nodes, GetFolderTree(subdir))
-		}
-	}
-
-	return parent
 }
 
 // GetFolderLayer returns a list of folders
@@ -60,10 +33,7 @@ func GetFilesLayer(path string) []File {
 
 	for _, file := range files {
 		if !file.IsDir() && isLegalPath(file.Name()) {
-			var f File
-			f.Name = file.Name()
-			f.Path = filepath.Join(path, file.Name())
-
+			f := File{Name: file.Name(), Path: filepath.Join(path, file.Name())}
 			fileList = append(fileList, f)
 		}
 	}
@@ -72,15 +42,31 @@ func GetFilesLayer(path string) []File {
 }
 
 func isLegalPath(path string) bool {
-	if strings.HasPrefix(path, ".") {
+
+	if len(path) == 0 {
 		return false
 	}
 
-	if strings.HasPrefix(path, "$") {
+	if path == "System Volume Information" {
 		return false
 	}
 
-	return true
+	switch string(path[0]) {
+	case ".":
+		return false
+	case "$":
+		return false
+	default:
+		return true
+	}
+}
+
+// ExtractFileName extracts the file name from a path
+func ExtractFileName(path string) string {
+	paths := strings.Split(path, string(filepath.Separator))
+	path = paths[len(paths)-1]
+
+	return strings.ReplaceAll(path, ".", " ")
 }
 
 func GetDrives() (r []string) {

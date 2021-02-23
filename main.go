@@ -24,6 +24,5 @@ func main() {
 
 	if err != nil {
 		log.Fatal("Error Starting the HTTP Server :", err)
-		return
 	}
 }

@@ -9,9 +9,7 @@ import (
 	"github.com/philcantcode/goApi/utils"
 )
 
-var indexTemplate *template.Template
-var playerTemplate *template.Template
-var locTrackTemplate *template.Template
+var templates *template.Template
 
 func init() {
 	reload()
@@ -19,9 +17,8 @@ func init() {
 
 func reload() { // When done, remove calls to reload
 	var err error
-	indexTemplate, err = template.ParseFiles(utils.FilePath+"index.html", utils.FilePath+"header.html", utils.FilePath+"footer.html")
-	playerTemplate, err = template.ParseFiles(utils.FilePath+"player.html", utils.FilePath+"header.html", utils.FilePath+"footer.html")
-	locTrackTemplate, err = template.ParseFiles(utils.FilePath+"os.html", utils.FilePath+"header.html", utils.FilePath+"footer.html")
+	templates, err = template.ParseFiles(utils.FilePath+"index.html", utils.FilePath+"player.html",
+		utils.FilePath+"os.html", utils.FilePath+"header.html", utils.FilePath+"footer.html")
 
 	if err != nil {
 		fmt.Printf("%s\n", err)
@@ -31,13 +28,12 @@ func reload() { // When done, remove calls to reload
 
 // IndexHandler handles the / (Root) request
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	indexTemplate.ExecuteTemplate(w, "index", indexPage)
+	templates.ExecuteTemplate(w, "index", indexPage)
 }
 
-// MediaHandler
+// MediaHandler to handle file requests
 func MediaHandler(w http.ResponseWriter, r *http.Request) {
 	loadParam := r.FormValue("load")
-	fmt.Println(loadParam)
 	http.ServeFile(w, r, loadParam)
 }
 
@@ -48,15 +44,23 @@ func PlayerHandler(w http.ResponseWriter, r *http.Request) {
 	openParam := r.FormValue("open")
 	playParam := r.FormValue("play")
 
+	//https://blog.addpipe.com/10-advanced-features-in-html5-video-player/
 	data := struct {
 		Folders    []string
 		SubFolders []string
-		Media      []utils.File
-		MediaItem  string
-	}{MediaItem: playParam}
+		Files      []utils.File
+
+		Media         string
+		MediaTitle    string
+		MediaPlayback string
+	}{
+		Media:         playParam,
+		MediaTitle:    utils.ExtractFileName(playParam),
+		MediaPlayback: "0",
+	}
 
 	for _, s := range database.GetTrackedFolders() {
-		data.Folders = append(data.Folders, s.Folder)
+		data.Folders = append(data.Folders, s.Path)
 	}
 
 	if openParam != "" {
@@ -65,12 +69,12 @@ func PlayerHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, s := range utils.GetFilesLayer(openParam) {
-			data.Media = append(data.Media, s)
+			data.Files = append(data.Files, s)
 		}
 	}
 
 	playerPage.Contents = data
-	err := playerTemplate.ExecuteTemplate(w, "player", playerPage)
+	err := templates.ExecuteTemplate(w, "player", playerPage)
 
 	if err != nil {
 		fmt.Printf("%s\n", err)
@@ -82,18 +86,20 @@ func PlayerHandler(w http.ResponseWriter, r *http.Request) {
 func LocalTrackHandler(w http.ResponseWriter, r *http.Request) {
 	reload()
 
+	pathParam := r.FormValue("path")
+	trackParam := r.FormValue("track")
+	untrackParam := r.FormValue("untrack")
+
 	data := struct {
 		Selected       string
 		Drives         []string
 		SubFolders     []string
 		TrackedFolders []database.TrackFolders
-	}{}
-
-	pathParam := r.FormValue("path")
-	trackParam := r.FormValue("track")
-	untrackParam := r.FormValue("untrack")
-
-	data.Selected = pathParam
+	}{
+		Selected:       pathParam,
+		TrackedFolders: database.GetTrackedFolders(),
+		Drives:         utils.GetDrives(),
+	}
 
 	if pathParam != "" {
 		data.SubFolders = utils.GetFolderLayer(pathParam)
@@ -107,11 +113,8 @@ func LocalTrackHandler(w http.ResponseWriter, r *http.Request) {
 		database.UnTrackFolder(untrackParam)
 	}
 
-	data.TrackedFolders = database.GetTrackedFolders()
-	data.Drives = utils.GetDrives()
-
 	localTrackPage.Contents = data
-	err := locTrackTemplate.ExecuteTemplate(w, "localTracker", localTrackPage)
+	err := templates.ExecuteTemplate(w, "localTracker", localTrackPage)
 
 	if err != nil {
 		fmt.Printf("%s\n", err)
