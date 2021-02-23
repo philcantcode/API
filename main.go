@@ -1,6 +1,5 @@
 package main
 
-// https://www.wikihow.com/Install-FFmpeg-on-Windows
 import (
 	"log"
 	"net/http"
@@ -17,6 +16,7 @@ func main() {
 	router.HandleFunc("/", api.IndexHandler)
 	router.HandleFunc("/player", api.PlayerHandler)
 	router.HandleFunc("/os", api.LocalTrackHandler)
+	router.HandleFunc("/media", api.MediaHandler)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))

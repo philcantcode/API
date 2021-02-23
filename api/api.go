@@ -34,10 +34,48 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	indexTemplate.ExecuteTemplate(w, "index", indexPage)
 }
 
+// MediaHandler
+func MediaHandler(w http.ResponseWriter, r *http.Request) {
+	loadParam := r.FormValue("load")
+	fmt.Println(loadParam)
+	http.ServeFile(w, r, loadParam)
+}
+
 // PlayerHandler handles the /player request
 func PlayerHandler(w http.ResponseWriter, r *http.Request) {
 	reload()
-	playerTemplate.ExecuteTemplate(w, "player", playerPage)
+
+	openParam := r.FormValue("open")
+	playParam := r.FormValue("play")
+
+	data := struct {
+		Folders    []string
+		SubFolders []string
+		Media      []utils.File
+		MediaItem  string
+	}{MediaItem: playParam}
+
+	for _, s := range database.GetTrackedFolders() {
+		data.Folders = append(data.Folders, s.Folder)
+	}
+
+	if openParam != "" {
+		for _, s := range utils.GetFolderLayer(openParam) {
+			data.SubFolders = append(data.SubFolders, s)
+		}
+
+		for _, s := range utils.GetFilesLayer(openParam) {
+			data.Media = append(data.Media, s)
+		}
+	}
+
+	playerPage.Contents = data
+	err := playerTemplate.ExecuteTemplate(w, "player", playerPage)
+
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
 }
 
 // LocalTrackHandler handles the /os request

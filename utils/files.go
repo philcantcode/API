@@ -4,11 +4,17 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Node struct {
 	Path  string
 	Nodes []Node
+}
+
+type File struct {
+	Name string
+	Path string
 }
 
 // GetFolderTree returns a list of all folders
@@ -39,12 +45,42 @@ func GetFolderLayer(path string) []string {
 	var folders []string
 
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() && isLegalPath(file.Name()) {
 			folders = append(folders, filepath.Join(path, file.Name()))
 		}
 	}
 
 	return folders
+}
+
+// GetFilesLayer returns a list of files
+func GetFilesLayer(path string) []File {
+	files, _ := ioutil.ReadDir(path)
+	var fileList []File
+
+	for _, file := range files {
+		if !file.IsDir() && isLegalPath(file.Name()) {
+			var f File
+			f.Name = file.Name()
+			f.Path = filepath.Join(path, file.Name())
+
+			fileList = append(fileList, f)
+		}
+	}
+
+	return fileList
+}
+
+func isLegalPath(path string) bool {
+	if strings.HasPrefix(path, ".") {
+		return false
+	}
+
+	if strings.HasPrefix(path, "$") {
+		return false
+	}
+
+	return true
 }
 
 func GetDrives() (r []string) {
