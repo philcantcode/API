@@ -1,0 +1,73 @@
+{{define "player"}}
+{{template "header" . }}
+<div class="box box-success">
+    <div class="box-header with-border">
+      <h3 class="box-title">Which media do you want to play?</h3>
+      <div class="box-tools pull-right">
+        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+      </div>
+    </div>
+    <div class="box-body">
+      <p>Select a top level folder that you're tracking</p>
+      
+      <div>
+        {{range .Contents.Folders}}
+        <a href="?open={{ . }}" class="btn btn-success">{{ . }}</a>
+        {{end}}
+      </div>
+
+      <div class="box-body">
+        {{range .Contents.SubFolders}}
+        <a href="?open={{ . }}" class="btn btn-primary" style="margin-top:5px;">{{ . }}</a>
+        {{end}}
+      </div>
+
+      <div class="box-body">
+        {{range .Contents.Files}}
+        <a href="?play={{ .Path }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}</a>
+        {{end}}
+      </div>
+
+    </div>
+</div>
+
+{{ if .Contents.Media.Title }}
+<div class="box box-success">
+  <div class="box-header with-border">
+    <h3 class="box-title wrap">Currently Watching {{ .Contents.Media.Title }}</h3>
+    <div class="box-tools pull-right">
+      <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+    </div>
+  </div>
+  
+  <div class="box-body">    
+    <video controls="controls" width="100%" src="/media?load={{ .Contents.Media.Path }}#t={{ .Contents.Media.PlayTime }}">
+      Your browser does not support the HTML5 Video element.
+    </video>
+
+  </div>
+</div>
+{{end}}
+
+<script type="text/javascript">
+
+window.setInterval(function()
+{
+  console.log("aaaaa");
+  play();
+}, 1000);
+
+function play()
+{
+    $.get("http://{{ .Contents.IP }}:{{ .Contents.Port }}/player/controls?play=aaa", function( data )
+    {
+        
+    });
+
+    console.log("printing");
+}
+
+</script>
+
+{{template "footer" . }}
+{{end}}
