@@ -41,33 +41,41 @@
   </div>
   
   <div class="box-body">    
-    <video controls="controls" width="100%" src="/media?load={{ .Contents.Media.Path }}#t={{ .Contents.Media.PlayTime }}">
+    <video autoplay id="player" preload="auto" controls="controls" width="100%" src="/player/controls?load={{ .Contents.Media.Path }}#t={{ .Contents.Media.PlayTime }}">
+      <track label="English subtitles" kind="subtitles" srclang="en" src="" default=""> 
       Your browser does not support the HTML5 Video element.
     </video>
 
   </div>
 </div>
-{{end}}
 
 <script type="text/javascript">
 
-window.setInterval(function()
-{
-  console.log("aaaaa");
-  play();
-}, 1000);
+  var player = document.getElementById("player");
+  var url = "http://{{ .Contents.IP }}:{{ .Contents.Port }}";
+  var id = "{{ .Contents.Media.ID }}";
+  
+  window.setInterval(function()
+  {
+     status();
+  }, 2000);
+  
+  function status()
+  { 
+      $.post(url + "/player/status",
+      {
+          id: id,
+          playtime: player.currentTime
+      },
+      function(data) 
+      {
+          console.log("ret: " + data);
+      });
+  }
+  
+  </script>
 
-function play()
-{
-    $.get("http://{{ .Contents.IP }}:{{ .Contents.Port }}/player/controls?play=aaa", function( data )
-    {
-        
-    });
-
-    console.log("printing");
-}
-
-</script>
+{{end}}
 
 {{template "footer" . }}
 {{end}}

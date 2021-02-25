@@ -50,12 +50,12 @@ func init() {
 }
 
 func FindOrCreateMedia(path string) Media {
-	media := GetMedia(path)
+	media := SelectMedia(path)
 
 	// Doesn't exist in DB
 	if media.ID == 0 {
 		InsertMedia(path)
-		media = GetMedia(path)
+		media = SelectMedia(path)
 	}
 
 	return media

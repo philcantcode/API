@@ -16,8 +16,9 @@ func main() {
 	router.HandleFunc("/", server.Index)
 	router.HandleFunc("/player", server.Player)
 	router.HandleFunc("/player/controls", server.PlayerControls)
+	router.HandleFunc("/player/status", server.PlayerStatus)
+	router.HandleFunc("/player/remote", server.PlayerRemote)
 	router.HandleFunc("/os", server.FileTrack)
-	router.HandleFunc("/media", server.Media)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))

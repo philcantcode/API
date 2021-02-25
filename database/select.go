@@ -31,14 +31,31 @@ type Media struct {
 	Date     string
 }
 
-// GetMedia finds the playback in the database
-func GetMedia(path string) Media {
+// SelectMedia finds the playback in the database
+func SelectMedia(path string) Media {
 	stmt, _ := database.Prepare(
 		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `path` = ? LIMIT 1;")
 
 	media := Media{}
 	rows, _ := stmt.Query(path)
+
+	for rows.Next() {
+		rows.Scan(&media.ID, &media.Title, &media.Hash,
+			&media.Path, &media.PlayTime, &media.Date)
+	}
+
+	return media
+}
+
+// SelectMediaByID finds the playback in the database
+func SelectMediaByID(id int64) Media {
+	stmt, _ := database.Prepare(
+		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
+			"FROM `playHistory` WHERE `id` = ? LIMIT 1;")
+
+	media := Media{}
+	rows, _ := stmt.Query(id)
 
 	for rows.Next() {
 		rows.Scan(&media.ID, &media.Title, &media.Hash,

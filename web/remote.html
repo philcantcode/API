@@ -1,0 +1,55 @@
+{{define "remote"}}
+{{template "header" . }}
+<div class="box box-success">
+    <div class="box-header with-border">
+      <h3 class="box-title">Loaded Media</h3>
+      <div class="box-tools pull-right">
+        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+      </div>
+    </div>
+    <div class="box-body">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Title</th>
+            <th scope="col">Remote</th>
+          </tr>
+        </thead>
+        <tbody>
+        {{range .Contents.Loaded}}
+          <tr>
+            <th scope="row">{{ .ID }}</th>
+            <td>{{ .Title }}</td>
+            <td><a href="/player/remote?controller={{ .ID }}" class="btn btn-primary" style="margin-top:5px;">Open Controller</a></td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+</div>
+
+{{ if .Contents.Controller }}
+<div class="box box-success">
+  <div class="box-header with-border">
+    <h3 class="box-title">{{ .Contents.ControllerMedia.Title }}</h3>
+    <div class="box-tools pull-right">
+      <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+    </div>
+  </div>
+  <div class="box-body">
+    <a href="/player/remote?controller={{ .Contents.ControllerMedia.ID }}" class="btn btn-primary" style="margin-top:5px;">Open Controller</a>
+  </div>
+</div>
+{{end}}
+
+<script type="text/javascript">
+
+  var url = "{{ .Contents.IP }}:{{ .Contents.Port }}";
+  
+  socket = new WebSocket("ws://" + url + "/player/controls");
+  socket.send("reeeeeeeeeeeeeee\n");
+</script>
+
+{{template "footer" . }}
+{{end}}

@@ -1,8 +1,6 @@
 package database
 
 import (
-	"time"
-
 	"github.com/philcantcode/goApi/utils"
 )
 
@@ -17,5 +15,5 @@ func InsertMedia(path string) {
 	statement, _ := database.Prepare("INSERT INTO `playHistory`" +
 		"(name, hash, path, playTime, date) VALUES (?, ?, ?, ?, ?)")
 
-	statement.Exec(utils.ExtractFileName(path), "", path, 0, int32(time.Now().Unix()))
+	statement.Exec(utils.ExtractFileName(path), "", path, 0, utils.GetTime())
 }
