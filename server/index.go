@@ -79,7 +79,7 @@ func reload() { // When done, remove calls to reload
 	}
 }
 
-// Index handles the / (Root) request
-func Index(w http.ResponseWriter, r *http.Request) {
+// IndexPage handles the / (Root) request
+func IndexPage(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "index", indexPage)
 }

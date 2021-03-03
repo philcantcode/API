@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// File represents a file on OS
 type File struct {
 	Name string
 	Path string
@@ -69,6 +70,14 @@ func ExtractFileName(path string) string {
 	return strings.ReplaceAll(path, ".", " ")
 }
 
+// ExtractFolderName extracts the file name from a path
+func ExtractFolderName(path string) string {
+	paths := strings.Split(path, string(filepath.Separator))
+
+	return strings.Join(paths[:len(paths)-1], string(filepath.Separator))
+}
+
+// GetDrives returns a list of windows OS drives
 func GetDrives() (r []string) {
 	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
 		f, err := os.Open(string(drive) + ":\\")
@@ -78,4 +87,21 @@ func GetDrives() (r []string) {
 		}
 	}
 	return
+}
+
+// GetNextMatchingOrderedFile Takes in a folder and file, returns the next ordered file or returns "" if none found
+func GetNextMatchingOrderedFile(folder string, file string) string {
+	files := GetFilesLayer(folder)
+
+	for i := 0; i < len(files); i++ {
+		if files[i].Path == file {
+			for j := i + 1; j < len(files); j++ {
+				if filepath.Ext(files[j].Path) == filepath.Ext(file) {
+					return files[j].Path
+				}
+			}
+		}
+	}
+
+	return ""
 }

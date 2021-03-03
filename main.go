@@ -13,11 +13,13 @@ import (
 func main() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", server.Index)
-	router.HandleFunc("/player", server.Player)
-	router.HandleFunc("/player/controls", server.PlayerControls)
-	router.HandleFunc("/player/status", server.PlayerStatus)
-	router.HandleFunc("/player/remote", server.PlayerRemote)
+	router.HandleFunc("/", server.IndexPage)
+	router.HandleFunc("/player", server.PlayerPage)
+	router.HandleFunc("/player/remote", server.RemotePage)
+
+	router.HandleFunc("/player/ws-setup", server.WebSocketSetup)
+	router.HandleFunc("/player/load", server.LoadMedia)
+
 	router.HandleFunc("/os", server.FileTrack)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))

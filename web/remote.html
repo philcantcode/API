@@ -17,11 +17,11 @@
           </tr>
         </thead>
         <tbody>
-        {{range .Contents.Loaded}}
+        {{range .Contents.OpenMediaInfoList}}
           <tr>
             <th scope="row">{{ .ID }}</th>
             <td>{{ .Title }}</td>
-            <td><a href="/player/remote?controller={{ .ID }}" class="btn btn-primary" style="margin-top:5px;">Open Controller</a></td>
+            <td><a href="/player/remote?controller={{ .ID }}" class="btn btn-primary" style="margin-top:5px;">Open Remote</a></td>
           </tr>
         {{end}}
         </tbody>
@@ -29,26 +29,80 @@
     </div>
 </div>
 
-{{ if .Contents.Controller }}
+{{ if .Contents.RemoteID }}
 <div class="box box-success">
   <div class="box-header with-border">
-    <h3 class="box-title">{{ .Contents.ControllerMedia.Title }}</h3>
+    <h3 class="box-title">{{ .Contents.RemoteMediaInfo.Title }}</h3>
     <div class="box-tools pull-right">
       <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
     </div>
   </div>
   <div class="box-body">
-    <a href="/player/remote?controller={{ .Contents.ControllerMedia.ID }}" class="btn btn-primary" style="margin-top:5px;">Open Controller</a>
+    <button class="btn btn-primary player-play" style="margin-top:5px;">Play</button>
+    <button class="btn btn-primary player-pause" style="margin-top:5px;">Pause</button>
+    <button class="btn btn-primary player-rewind" style="margin-top:5px;">Rewind</button>
+    <button class="btn btn-primary player-fastforward" style="margin-top:5px;">FastForward</button>
+    <button class="btn btn-danger player-skip" style="margin-top:5px;">Skip</button>
   </div>
 </div>
 {{end}}
 
 <script type="text/javascript">
 
-  var url = "{{ .Contents.IP }}:{{ .Contents.Port }}";
-  
-  socket = new WebSocket("ws://" + url + "/player/controls");
-  socket.send("reeeeeeeeeeeeeee\n");
+  var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
+  var mediaID = "{{ .Contents.RemoteMediaInfo.ID }}";
+  var nextID = "{{ .Contents.NextMediaItem }}";
+
+  socket = new WebSocket("ws://" + wsurl + "/player/ws-setup");
+
+  socket.onmessage = function(msg) 
+  {
+      if (msg.data.length > 0)
+      {
+        console.log("Remote Received: " + msg.data)
+        var commands = msg.data.split(":");
+
+        for (let i = 0; i < commands.length; i += 2) {
+              var key = commands[i];
+              var val = commands[i+1];
+
+              switch(key) {
+                  case "nextID":
+                      nextID = val;
+                      break;
+              }
+          } 
+      }
+  };
+
+  $(".player-play").on("click", function(e)
+  {
+      socket.send(mediaID + ":" + "play" + ":" + "");
+  });
+
+  $(".player-pause").on("click", function(e)
+  {
+      socket.send(mediaID + ":" + "pause" + ":" + "");
+  });
+
+  $(".player-rewind").on("click", function(e)
+  {
+      socket.send(mediaID + ":" + "rewind" + ":" + 10);
+  });
+
+  $(".player-fastforward").on("click", function(e)
+  {
+      socket.send(mediaID + ":" + "fastforward" + ":" + 10);
+  });
+
+  $(".player-skip").on("click", function(e)
+  {
+      console.log(mediaID + " skipping to " + nextID);
+      socket.send(mediaID + ":" + "skip" + ":" + nextID);
+      mediaID = nextID;
+      socket.send(mediaID + ":" + "query" + ":" + "nextID" + ":" + nextID);
+  });
+
 </script>
 
 {{template "footer" . }}

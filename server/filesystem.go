@@ -20,10 +20,10 @@ func FileTrack(w http.ResponseWriter, r *http.Request) {
 		Selected       string
 		Drives         []string
 		SubFolders     []string
-		TrackedFolders []database.TrackFolders
+		TrackedFolders []database.Directory
 	}{
 		Selected:       pathParam,
-		TrackedFolders: database.GetTrackedFolders(),
+		TrackedFolders: database.GetDirectories(),
 		Drives:         utils.GetDrives(),
 	}
 

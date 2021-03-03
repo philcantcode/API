@@ -49,7 +49,7 @@ func init() {
 	statement.Exec()
 }
 
-func FindOrCreateMedia(path string) Media {
+func FindOrCreateMedia(path string) MediaInfo {
 	media := SelectMedia(path)
 
 	// Doesn't exist in DB

@@ -4,14 +4,14 @@
     <div class="box-header with-border">
       <h3 class="box-title">Which media do you want to play?</h3>
       <div class="box-tools pull-right">
-        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+        <button id="media-list" type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
       </div>
     </div>
     <div class="box-body">
       <p>Select a top level folder that you're tracking</p>
       
       <div>
-        {{range .Contents.Folders}}
+        {{range .Contents.Directories}}
         <a href="?open={{ . }}" class="btn btn-success">{{ . }}</a>
         {{end}}
       </div>
@@ -24,24 +24,24 @@
 
       <div class="box-body">
         {{range .Contents.Files}}
-        <a href="?play={{ .Path }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}</a>
+        <a href="?play={{ .Path }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}</a>
         {{end}}
       </div>
 
     </div>
 </div>
 
-{{ if .Contents.Media.Title }}
+{{ if .Contents.MediaInfo.Title }}
 <div class="box box-success">
   <div class="box-header with-border">
-    <h3 class="box-title wrap">Currently Watching {{ .Contents.Media.Title }}</h3>
+    <h3 class="box-title wrap">Currently Watching <span id="currently-watching">{{ .Contents.MediaInfo.Title }}</span></h3>
     <div class="box-tools pull-right">
       <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
     </div>
   </div>
   
   <div class="box-body">    
-    <video autoplay id="player" preload="auto" controls="controls" width="100%" src="/player/controls?load={{ .Contents.Media.Path }}#t={{ .Contents.Media.PlayTime }}">
+    <video controls autoplay id="player" width="100%" src="/player/load?file={{ .Contents.MediaInfo.Path }}#t={{ .Contents.MediaInfo.PlayTime }}">
       <track label="English subtitles" kind="subtitles" srclang="en" src="" default=""> 
       Your browser does not support the HTML5 Video element.
     </video>
@@ -50,32 +50,80 @@
 </div>
 
 <script type="text/javascript">
+  $(window).load(function() 
+  {
+      $("#media-list").click();
+  });
+    
+</script>
+{{end}}
+
+<script type="text/javascript">
 
   var player = document.getElementById("player");
   var url = "http://{{ .Contents.IP }}:{{ .Contents.Port }}";
-  var id = "{{ .Contents.Media.ID }}";
+  var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
+  var id = "{{ .Contents.MediaInfo.ID }}";
+  var folder = "{{ .Contents.OpenParam }}";
+
+  socket = new WebSocket("ws://" + wsurl + "/player/ws-setup");
+
+  socket.onmessage = function(msg) 
+  {
+      if (msg.data.length > 0)
+      {
+          console.log("Player Received: " + msg.data)
+          var commands = msg.data.split(":");
+
+          for (let i = 0; i < commands.length; i += 2) {
+              var key = commands[i];
+              var val = commands[i+1];
+
+              switch(key) {
+                  case "play":
+                      player.play();
+                      break;
+                  case "pause":
+                      player.pause();
+                      break;
+                  case "rewind":
+                      player.currentTime = (player.currentTime - val);
+                      break;
+                  case "fastforward":
+                      player.currentTime = (player.currentTime + parseInt(val));
+                      break;
+                  case "skip":
+                      if (val != "" && val != 0) 
+                      {
+                          player.pause();
+                          player.setAttribute("src", "" + val);
+
+                          socket.send(val + ":open:");
+                          socket.send(id + ":close:");
+                          socket.send(val + ":query:mediaInfo");
+
+                          player.setAttribute("src", "/player/load?id=" + val);
+                          player.load();
+                          player.play();
+
+                          id = val;
+                      }                   
+                      break;
+                    case "title":
+                      $("#currently-watching").text(val);
+                      break;
+              }
+          }
+      }
+  };
   
   window.setInterval(function()
   {
-     status();
+      console.log("Player > " + id + ":status:" + player.currentTime);
+      socket.send(id + ":status:" + player.currentTime);
   }, 2000);
   
-  function status()
-  { 
-      $.post(url + "/player/status",
-      {
-          id: id,
-          playtime: player.currentTime
-      },
-      function(data) 
-      {
-          console.log("ret: " + data);
-      });
-  }
-  
   </script>
-
-{{end}}
 
 {{template "footer" . }}
 {{end}}
