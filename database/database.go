@@ -49,6 +49,7 @@ func init() {
 	statement.Exec()
 }
 
+// FindOrCreateMedia searches for or creates a media
 func FindOrCreateMedia(path string) MediaInfo {
 	media := SelectMedia(path)
 

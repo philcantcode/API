@@ -1,11 +1,11 @@
-package server
+package player
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/philcantcode/goApi/database"
@@ -24,15 +24,17 @@ type command struct {
 	value string
 }
 
-func controlsSocket(ws *websocket.Conn) {
+func commandSocket(ws *websocket.Conn, id int) {
+
 	for {
 		mt, msg, err := ws.ReadMessage()
 
 		if err != nil {
-			log.Println("Error Reading Websocket:", err)
-			break
+			CloseChannel(id)
+			return
 		}
 
+		// Incoming requests from client = id:key:value
 		msgArr := strings.Split(string(msg), ":")
 		mediaID, _ := strconv.Atoi(msgArr[0])
 		cmdKey := msgArr[1]
@@ -40,18 +42,20 @@ func controlsSocket(ws *websocket.Conn) {
 
 		fmt.Printf("Chan %d/%d has %d cmds %s -> %s\n", mediaID, len(channels), len(channels[mediaID].c), cmdKey, cmdVal)
 
-		// Processing incoming commands
-		if cmdKey == "status" {
-			playTime, _ := strconv.ParseFloat(cmdVal, 64)
-			database.UpdatePlaytime(mediaID, int(playTime))
-		} else if cmdKey == "query" {
-			if cmdVal == "nextID" { // Client Player asks for the nextID
-				prevMedia := database.SelectMediaByID(mediaID)
-				nextMedia := utils.GetNextMatchingOrderedFile(prevMedia.Folder, prevMedia.Path)
-				nextID := database.FindOrCreateMedia(nextMedia).ID
-
-				ws.WriteMessage(mt, []byte(utils.JoinStr("nextID", fmt.Sprintf("%d", nextID))))
-			} else if cmdVal == "mediaInfo" { // Client Player asks for all media info
+		// Handle incoming queries
+		switch cmdKey {
+		case "playback":
+			playbackUpdate(cmdVal, mediaID)
+		case "query":
+			switch cmdVal {
+			case "nextID":
+				ws.WriteMessage(mt, []byte(
+					utils.JoinStr(
+						"nextID",
+						fmt.Sprintf("%d", findNextMedia(mediaID)))))
+			case "prevID":
+				// do something
+			case "mediaInfo":
 				media := database.SelectMediaByID(mediaID)
 
 				ws.WriteMessage(mt, []byte(utils.JoinStr(
@@ -64,38 +68,51 @@ func controlsSocket(ws *websocket.Conn) {
 					"date", media.Date,
 				)))
 			}
-		} else if cmdKey == "close" {
-			CloseChannel(mediaID)
-		} else if cmdKey == "open" {
-			OpenChannel(database.SelectMediaByID(mediaID))
-		} else {
-			// Find the correct channel, new command to it
+		default:
 			cmd := command{key: cmdKey, value: cmdVal}
 			channels[mediaID].c <- cmd
-		}
-
-		// Sending back commands to correct client
-		if cmdKey == "status" {
-			var returnCMD = ""
-			channel, exists := channels[mediaID]
-
-			if exists {
-				for j := 0; j < len(channel.c); j++ {
-					var cmd = <-channel.c
-					returnCMD = utils.JoinStr(returnCMD, cmd.key, cmd.value)
-				}
-
-				ws.WriteMessage(mt, []byte(returnCMD))
-			}
 		}
 	}
 }
 
-// WebSocketSetup creates web sockets
-func WebSocketSetup(w http.ResponseWriter, r *http.Request) {
+// SocketSetup creates web sockets, optional id parameter
+func SocketSetup(w http.ResponseWriter, r *http.Request) {
+
+	idParam := 0
+	if r.FormValue("id") != "" {
+		idParam, _ = strconv.Atoi(r.FormValue("id"))
+	}
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 	utils.Err("Couldn't upgrade websocket", err)
-	go controlsSocket(ws)
+
+	// Open a channel and socket
+	OpenChannel(database.SelectMediaByID(idParam))
+
+	go commandSocket(ws, idParam)
+	go receiverSocket(ws, idParam)
+
+	fmt.Printf("Socket opened for id: %d\n", idParam)
+}
+
+func receiverSocket(ws *websocket.Conn, id int) {
+	for range time.Tick(300 * time.Millisecond) {
+		var cmdBuff string
+
+		_, exists := channels[id]
+
+		if !exists {
+			fmt.Printf("CHAN %d doesn't exist, breaking\n", id)
+			break
+		}
+
+		for j := 0; j < len(channels[id].c); j++ {
+			var cmd = <-channels[id].c
+			cmdBuff += utils.JoinStr(cmdBuff, cmd.key, cmd.value)
+		}
+
+		ws.WriteMessage(1, []byte(cmdBuff))
+	}
 }
 
 var upgrader = websocket.Upgrader{
@@ -109,7 +126,7 @@ func OpenChannel(mediaInfo database.MediaInfo) {
 	_, channelExists := channels[mediaInfo.ID]
 
 	if !channelExists {
-		fmt.Printf("Opening new channel %d\n", mediaInfo.ID)
+		fmt.Printf("Channel opened for id: %d\n", mediaInfo.ID)
 		c := channel{mediaInfo: mediaInfo, c: make(chan command, 10)}
 		channels[mediaInfo.ID] = c
 	}

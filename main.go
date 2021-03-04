@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/philcantcode/goApi/server"
+	"github.com/philcantcode/goApi/player"
 	"github.com/philcantcode/goApi/utils"
 )
 
@@ -13,14 +13,14 @@ import (
 func main() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", server.IndexPage)
-	router.HandleFunc("/player", server.PlayerPage)
-	router.HandleFunc("/player/remote", server.RemotePage)
+	router.HandleFunc("/", player.IndexPage)
+	router.HandleFunc("/player", player.PlayerPage)
+	router.HandleFunc("/player/remote", player.RemotePage)
 
-	router.HandleFunc("/player/ws-setup", server.WebSocketSetup)
-	router.HandleFunc("/player/load", server.LoadMedia)
+	router.HandleFunc("/player/ws-setup", player.SocketSetup)
+	router.HandleFunc("/player/load", player.LoadMedia)
 
-	router.HandleFunc("/os", server.FileTrack)
+	router.HandleFunc("/os", player.FileTrack)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))

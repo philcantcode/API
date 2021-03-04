@@ -65,8 +65,19 @@
   var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
   var id = "{{ .Contents.MediaInfo.ID }}";
   var folder = "{{ .Contents.OpenParam }}";
+  var socket;
 
-  socket = new WebSocket("ws://" + wsurl + "/player/ws-setup");
+  openSocket(id);
+
+  function openSocket(sid)
+  {
+      socket = new WebSocket("ws://" + wsurl + "/player/ws-setup?id=" + sid);
+  }
+
+  function closeSocket()
+  {
+      socket.close();
+  }
 
   socket.onmessage = function(msg) 
   {
@@ -95,18 +106,31 @@
                   case "skip":
                       if (val != "" && val != 0) 
                       {
-                          player.pause();
-                          player.setAttribute("src", "" + val);
-
-                          socket.send(val + ":open:");
-                          socket.send(id + ":close:");
-                          socket.send(val + ":query:mediaInfo");
-
-                          player.setAttribute("src", "/player/load?id=" + val);
-                          player.load();
-                          player.play();
-
                           id = val;
+
+                          // Stop the current media
+                          player.pause();
+                          player.setAttribute("src", "");
+                          player.load();
+
+                          // Close old socket, create new
+                          closeSocket();
+
+                          socket.onclose = function() 
+                          {
+                              openSocket(id);
+
+                              socket.onopen = function() 
+                              {
+                                  alert("opened")
+                                  socket.send(id + ":query:mediaInfo");
+
+                                  // Load the new media
+                                  player.setAttribute("src", "/player/load?id=" + id);
+                                  player.load();
+                                  player.play();
+                              }
+                          }
                       }                   
                       break;
                     case "title":
@@ -119,9 +143,12 @@
   
   window.setInterval(function()
   {
-      console.log("Player > " + id + ":status:" + player.currentTime);
-      socket.send(id + ":status:" + player.currentTime);
-  }, 2000);
+      if (!player.paused)
+      {
+        console.log("Player > " + id + ":playback:" + player.currentTime);
+        socket.send(id + ":playback:" + player.currentTime);
+      }
+  }, 10000);
   
   </script>
 

@@ -1,7 +1,6 @@
-package server
+package player
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -82,6 +81,19 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, mediaInfo.Path)
 	}
 
-	fmt.Printf("Media Loaded (%d) %s\n", mediaInfo.ID, mediaInfo.Title)
 	OpenChannel(mediaInfo)
+}
+
+// When a playback update comes in
+func playbackUpdate(playTimeStr string, mediaID int) {
+	playTime, _ := strconv.ParseFloat(playTimeStr, 64)
+	database.UpdatePlaytime(mediaID, int(playTime))
+}
+
+func findNextMedia(mediaID int) int {
+	prevMedia := database.SelectMediaByID(mediaID)
+	nextMedia := utils.GetNextMatchingOrderedFile(prevMedia.Folder, prevMedia.Path)
+	nextID := database.FindOrCreateMedia(nextMedia).ID
+
+	return nextID
 }
