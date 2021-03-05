@@ -44,29 +44,20 @@ func commandSocket(ws *websocket.Conn, id int) {
 
 		// Handle incoming queries
 		switch cmdKey {
+		case "close":
+			CloseChannel(id)
 		case "playback":
 			playbackUpdate(cmdVal, mediaID)
 		case "query":
 			switch cmdVal {
 			case "nextID":
-				ws.WriteMessage(mt, []byte(
-					utils.JoinStr(
-						"nextID",
-						fmt.Sprintf("%d", findNextMedia(mediaID)))))
+				ws.WriteMessage(mt, []byte(fmt.Sprintf("nextID:%d", findNextMedia(mediaID))))
 			case "prevID":
 				// do something
 			case "mediaInfo":
 				media := database.SelectMediaByID(mediaID)
-
-				ws.WriteMessage(mt, []byte(utils.JoinStr(
-					"id", fmt.Sprintf("%d", media.ID),
-					"title", media.Title,
-					"hash", media.Hash,
-					"path", media.Path,
-					"folder", media.Folder,
-					"playtime", fmt.Sprintf("%d", media.PlayTime),
-					"date", media.Date,
-				)))
+				ret := fmt.Sprintf("id:%d:title:%s:hash:%s:path:%s:folder:%s:playtime:%d:date:%d", mediaID, media.Title, media.Hash, media.Path, media.Folder, media.PlayTime, media.Date)
+				ws.WriteMessage(mt, []byte(ret))
 			}
 		default:
 			cmd := command{key: cmdKey, value: cmdVal}

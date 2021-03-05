@@ -60,95 +60,142 @@
 
 <script type="text/javascript">
 
-  var player = document.getElementById("player");
   var url = "http://{{ .Contents.IP }}:{{ .Contents.Port }}";
   var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
+
+  var socket;
+
+  var player = document.getElementById("player");
   var id = "{{ .Contents.MediaInfo.ID }}";
   var folder = "{{ .Contents.OpenParam }}";
-  var socket;
+  var rewindAmount = 10;
+  var nextID = "{{ .Contents.NextMediaItem }}";
 
   openSocket(id);
 
   function openSocket(sid)
   {
       socket = new WebSocket("ws://" + wsurl + "/player/ws-setup?id=" + sid);
+
+      socket.onmessage = function(msg) 
+      {
+          if (msg.data.length > 0)
+          {
+              console.log("Player Received: " + msg.data)
+              var commands = msg.data.split(":");
+
+              for (let i = 0; i < commands.length; i += 2) 
+              {
+                  var key = commands[i];
+                  var val = commands[i+1];
+
+                  switch(key) {
+                      case "play":
+                          player.play();
+                          break;
+                      case "pause":
+                          player.pause();
+                          break;
+                      case "rewind":
+                          fastforward(-parseInt(val));
+                          break;
+                      case "fastforward":
+                          fastforward(parseInt(val));
+                          break;
+                      case "skip":
+                          if (val != "" && val != 0) 
+                              skip(val);                
+                          break;
+                      case "title":
+                          $("#currently-watching").text(val);
+                          break;
+                      case "nextID":
+                          nextID = val;
+                          break;
+                  }
+              }
+          }
+      };
   }
 
   function closeSocket()
   {
+      socket.send(id + ":close:");
       socket.close();
   }
-
-  socket.onmessage = function(msg) 
-  {
-      if (msg.data.length > 0)
-      {
-          console.log("Player Received: " + msg.data)
-          var commands = msg.data.split(":");
-
-          for (let i = 0; i < commands.length; i += 2) {
-              var key = commands[i];
-              var val = commands[i+1];
-
-              switch(key) {
-                  case "play":
-                      player.play();
-                      break;
-                  case "pause":
-                      player.pause();
-                      break;
-                  case "rewind":
-                      player.currentTime = (player.currentTime - val);
-                      break;
-                  case "fastforward":
-                      player.currentTime = (player.currentTime + parseInt(val));
-                      break;
-                  case "skip":
-                      if (val != "" && val != 0) 
-                      {
-                          id = val;
-
-                          // Stop the current media
-                          player.pause();
-                          player.setAttribute("src", "");
-                          player.load();
-
-                          // Close old socket, create new
-                          closeSocket();
-
-                          socket.onclose = function() 
-                          {
-                              openSocket(id);
-
-                              socket.onopen = function() 
-                              {
-                                  alert("opened")
-                                  socket.send(id + ":query:mediaInfo");
-
-                                  // Load the new media
-                                  player.setAttribute("src", "/player/load?id=" + id);
-                                  player.load();
-                                  player.play();
-                              }
-                          }
-                      }                   
-                      break;
-                    case "title":
-                      $("#currently-watching").text(val);
-                      break;
-              }
-          }
-      }
-  };
   
   window.setInterval(function()
-  {
+  { 
       if (!player.paused)
       {
-        console.log("Player > " + id + ":playback:" + player.currentTime);
-        socket.send(id + ":playback:" + player.currentTime);
+          console.log("Player > " + id + ":playback:" + player.currentTime);
+          socket.send(id + ":playback:" + player.currentTime);
       }
   }, 10000);
+
+  $(document).on("keydown", function (e) {
+      
+      switch(e.key)
+      { 
+          case "ArrowLeft":
+              fastforward(-parseInt(rewindAmount));
+              break;
+          case "ArrowRight":
+              fastforward(parseInt(rewindAmount));
+              break;
+          case "ArrowUp":
+              break;
+          case "ArrowDown":
+              break;
+          case " ":
+              if (player.paused)
+                  player.play();
+              else
+                  player.pause();
+              break;
+          case "Enter":
+              skip(nextID); 
+              break;
+      } 
+  });
+
+  // Fast forward (or rewind) the player
+  function fastforward(val)
+  {
+      player.currentTime = (player.currentTime + val);
+  }
+
+  // Skip to the next media
+  function skip(nid)
+  {
+      // Stop the current media
+      player.pause();
+      player.setAttribute("src", "");
+      player.load();
+
+      // Close old socket, create new
+      closeSocket();
+
+      id = nid;
+      nid = 0;
+
+      socket.onclose = function() 
+      {
+          openSocket(id);
+
+          socket.onopen = function() 
+          {
+              socket.send(id + ":query:mediaInfo");
+
+              // Load the new media
+              player.setAttribute("src", "/player/load?id=" + id);
+              player.load();
+              player.play();
+
+              socket.send(id + ":" + "query" + ":" + "nextID");
+          }
+      }
+  }
   
   </script>
 

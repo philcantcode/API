@@ -34,7 +34,7 @@ type MediaInfo struct {
 	Path     string
 	Folder   string
 	PlayTime int
-	Date     string
+	Date     int
 }
 
 // SelectMedia finds the playback in the database
