@@ -120,7 +120,7 @@
 
   function closeSocket()
   {
-      socket.send(id + ":close:");
+      socket.send("close-socket");
       socket.close();
   }
   
@@ -128,8 +128,8 @@
   { 
       if (!player.paused)
       {
-          console.log("Player > " + id + ":playback:" + player.currentTime);
-          socket.send(id + ":playback:" + player.currentTime);
+          console.log("Player (" + id + ") > " + "playback:" + player.currentTime);
+          socket.send("playback:" + player.currentTime);
       }
   }, 10000);
 
@@ -185,14 +185,14 @@
 
           socket.onopen = function() 
           {
-              socket.send(id + ":query:mediaInfo");
+              socket.send("query:mediaInfo");
 
               // Load the new media
               player.setAttribute("src", "/player/load?id=" + id);
               player.load();
               player.play();
 
-              socket.send(id + ":" + "query" + ":" + "nextID");
+              socket.send("query:nextID");
           }
       }
   }

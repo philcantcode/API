@@ -50,7 +50,7 @@
 <script type="text/javascript">
 
   var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
-  var mediaID = "{{ .Contents.RemoteMediaInfo.ID }}";
+  var id = "{{ .Contents.RemoteMediaInfo.ID }}";
   var nextID = "{{ .Contents.NextMediaItem }}";
 
   socket = new WebSocket("ws://" + wsurl + "/player/ws-setup");
@@ -77,30 +77,30 @@
 
   $(".player-play").on("click", function(e)
   {
-      socket.send(mediaID + ":" + "play" + ":" + "");
+      socket.send(id + ":" + "play");
   });
 
   $(".player-pause").on("click", function(e)
   {
-      socket.send(mediaID + ":" + "pause" + ":" + "");
+      socket.send(id + ":" + "pause");
   });
 
   $(".player-rewind").on("click", function(e)
   {
-      socket.send(mediaID + ":" + "rewind" + ":" + 10);
+      socket.send(id + ":" + "rewind" + ":" + 10);
   });
 
   $(".player-fastforward").on("click", function(e)
   {
-      socket.send(mediaID + ":" + "fastforward" + ":" + 10);
+      socket.send(id + ":" + "fastforward" + ":" + 10);
   });
 
   $(".player-skip").on("click", function(e)
   {
-      console.log(mediaID + " skipping to " + nextID);
-      socket.send(mediaID + ":" + "skip" + ":" + nextID);
-      mediaID = nextID;
-      socket.send(mediaID + ":" + "query" + ":" + "nextID" + ":" + nextID);
+      console.log("Remote (" + id + ") skipping to " + nextID);
+      socket.send(id + ":" + "skip" + ":" + nextID);
+      id = nextID;
+      socket.send("query:nextID:" + nextID);
   });
 
 </script>

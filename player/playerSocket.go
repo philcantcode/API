@@ -34,34 +34,44 @@ func commandSocket(ws *websocket.Conn, id int) {
 			return
 		}
 
-		// Incoming requests from client = id:key:value
-		msgArr := strings.Split(string(msg), ":")
-		mediaID, _ := strconv.Atoi(msgArr[0])
-		cmdKey := msgArr[1]
-		cmdVal := msgArr[2]
+		// Incoming requests from client = key:value
+		cmd := strings.Split(string(msg), ":")
 
-		fmt.Printf("Chan %d/%d has %d cmds %s -> %s\n", mediaID, len(channels), len(channels[mediaID].c), cmdKey, cmdVal)
+		fmt.Printf("Chan %d/%d has %d commands: %v\n", id, len(channels), len(channels[id].c), cmd)
 
 		// Handle incoming queries
-		switch cmdKey {
-		case "close":
+		switch cmd[0] {
+		case "close-channel":
 			CloseChannel(id)
 		case "playback":
-			playbackUpdate(cmdVal, mediaID)
+			playbackUpdate(cmd[1], id)
 		case "query":
-			switch cmdVal {
+			switch cmd[1] {
 			case "nextID":
-				ws.WriteMessage(mt, []byte(fmt.Sprintf("nextID:%d", findNextMedia(mediaID))))
+				if len(cmd) == 3 {
+					queryID, _ := strconv.Atoi(cmd[2])
+					ws.WriteMessage(mt, []byte(fmt.Sprintf("nextID:%d", findNextMedia(queryID))))
+				} else {
+					ws.WriteMessage(mt, []byte(fmt.Sprintf("nextID:%d", findNextMedia(id))))
+				}
 			case "prevID":
 				// do something
 			case "mediaInfo":
-				media := database.SelectMediaByID(mediaID)
-				ret := fmt.Sprintf("id:%d:title:%s:hash:%s:path:%s:folder:%s:playtime:%d:date:%d", mediaID, media.Title, media.Hash, media.Path, media.Folder, media.PlayTime, media.Date)
+				media := database.SelectMediaByID(id)
+				ret := fmt.Sprintf("id:%d:title:%s:hash:%s:path:%s:folder:%s:playtime:%d:date:%d", id, media.Title, media.Hash, media.Path, media.Folder, media.PlayTime, media.Date)
 				ws.WriteMessage(mt, []byte(ret))
 			}
 		default:
-			cmd := command{key: cmdKey, value: cmdVal}
-			channels[mediaID].c <- cmd
+			var com command
+
+			if len(cmd) == 2 {
+				com = command{key: cmd[1], value: ""}
+			} else if len(cmd) == 3 {
+				com = command{key: cmd[1], value: cmd[2]}
+			}
+
+			chID, _ := strconv.Atoi(cmd[0])
+			channels[chID].c <- com
 		}
 	}
 }
@@ -81,7 +91,10 @@ func SocketSetup(w http.ResponseWriter, r *http.Request) {
 	OpenChannel(database.SelectMediaByID(idParam))
 
 	go commandSocket(ws, idParam)
-	go receiverSocket(ws, idParam)
+
+	if idParam != 0 {
+		go receiverSocket(ws, idParam)
+	}
 
 	fmt.Printf("Socket opened for id: %d\n", idParam)
 }
@@ -99,8 +112,11 @@ func receiverSocket(ws *websocket.Conn, id int) {
 
 		for j := 0; j < len(channels[id].c); j++ {
 			var cmd = <-channels[id].c
-			cmdBuff += utils.JoinStr(cmdBuff, cmd.key, cmd.value)
+			cmdBuff += fmt.Sprintf("%s:%s:%s", cmdBuff, cmd.key, cmd.value)
 		}
+
+		cmdBuff = strings.TrimPrefix(cmdBuff, ":")
+		cmdBuff = strings.TrimSuffix(cmdBuff, ":")
 
 		ws.WriteMessage(1, []byte(cmdBuff))
 	}
