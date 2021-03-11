@@ -1,16 +1,22 @@
 package utils
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 )
 
 // File represents a file on OS
 type File struct {
-	Name string
-	Path string
+	NameWithExt    string
+	NameWithoutExt string
+	NameWithSpaces string
+	PathWithName   string
+	Path           string
+	Extension      string
 }
 
 // GetFolderLayer returns a list of folders
@@ -34,7 +40,7 @@ func GetFilesLayer(path string) []File {
 
 	for _, file := range files {
 		if !file.IsDir() && isLegalPath(file.Name()) {
-			f := File{Name: file.Name(), Path: filepath.Join(path, file.Name())}
+			f := File{NameWithExt: file.Name(), PathWithName: filepath.Join(path, file.Name())}
 			fileList = append(fileList, f)
 		}
 	}
@@ -63,11 +69,25 @@ func isLegalPath(path string) bool {
 }
 
 // ExtractFileName extracts the file name from a path
-func ExtractFileName(path string) string {
-	paths := strings.Split(path, string(filepath.Separator))
-	path = paths[len(paths)-1]
+func ExtractFileName(fileName string) File {
 
-	return strings.ReplaceAll(path, ".", " ")
+	file := File{PathWithName: fileName}
+
+	paths := strings.Split(fileName, string(filepath.Separator))
+	fileName = paths[len(paths)-1]
+
+	file.Path = strings.Join(paths[0:len(paths)-1], string(filepath.Separator))
+	file.NameWithExt = fileName
+
+	name := strings.Split(fileName, ".")
+
+	file.NameWithoutExt = name[0]
+	file.Extension = name[len(name)-1]
+	file.NameWithSpaces = strings.ReplaceAll(fileName, ".", " ")
+
+	fmt.Printf("New File: %+v", file)
+
+	return file
 }
 
 // ExtractFolderName extracts the file name from a path
@@ -86,6 +106,10 @@ func GetDrives() (r []string) {
 			f.Close()
 		}
 	}
+
+	usr, _ := user.Current()
+	r = append(r, usr.HomeDir)
+
 	return
 }
 
@@ -94,10 +118,10 @@ func GetNextMatchingOrderedFile(folder string, file string) string {
 	files := GetFilesLayer(folder)
 
 	for i := 0; i < len(files); i++ {
-		if files[i].Path == file {
+		if files[i].PathWithName == file {
 			for j := i + 1; j < len(files); j++ {
-				if filepath.Ext(files[j].Path) == filepath.Ext(file) {
-					return files[j].Path
+				if filepath.Ext(files[j].PathWithName) == filepath.Ext(file) {
+					return files[j].PathWithName
 				}
 			}
 		}

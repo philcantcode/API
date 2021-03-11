@@ -50,15 +50,6 @@
 </div>
 
 <script type="text/javascript">
-  $(window).load(function() 
-  {
-      $("#media-list").click();
-  });
-    
-</script>
-{{end}}
-
-<script type="text/javascript">
 
   var url = "http://{{ .Contents.IP }}:{{ .Contents.Port }}";
   var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
@@ -69,13 +60,17 @@
   var id = "{{ .Contents.MediaInfo.ID }}";
   var folder = "{{ .Contents.OpenParam }}";
   var rewindAmount = 10;
-  var nextID = "{{ .Contents.NextMediaItem }}";
+
+  $(window).load(function() 
+  {
+      $("#media-list").click();
+  });
 
   openSocket(id);
 
   function openSocket(sid)
   {
-      socket = new WebSocket("ws://" + wsurl + "/player/ws-setup?id=" + sid);
+      socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/player?id=" + sid);
 
       socket.onmessage = function(msg) 
       {
@@ -84,34 +79,33 @@
               console.log("Player Received: " + msg.data)
               var commands = msg.data.split(":");
 
-              for (let i = 0; i < commands.length; i += 2) 
+              for (let i = 0; i < commands.length; i += 3) 
               {
-                  var key = commands[i];
-                  var val = commands[i+1];
+                  var type = commands[i];  // E.g., control
+                  var key = commands[i+1]; // E.g, pause/play
+                  var val = commands[i+2]; // E.g., 10
 
                   switch(key) {
                       case "play":
-                          player.play();
-                          break;
+                            player.play();
+                            break;
                       case "pause":
-                          player.pause();
-                          break;
+                            player.pause();
+                            break;
                       case "rewind":
-                          fastforward(-parseInt(val));
-                          break;
+                            fastforward(-parseInt(val));
+                            break;
                       case "fastforward":
-                          fastforward(parseInt(val));
-                          break;
-                      case "skip":
-                          if (val != "" && val != 0) 
-                              skip(val);                
-                          break;
-                      case "title":
-                          $("#currently-watching").text(val);
-                          break;
-                      case "nextID":
-                          nextID = val;
-                          break;
+                            fastforward(parseInt(val));
+                            break;
+                      case "skip-to":
+                            skip(val);
+                            socket.send("change-id:" + val);                
+                            break;
+                       case "media-info":
+                            var mediaInfo = val.split(";");
+                            $("#currently-watching").text(mediaInfo[1]);
+                            break;
                   }
               }
           }
@@ -128,8 +122,8 @@
   { 
       if (!player.paused)
       {
-          console.log("Player (" + id + ") > " + "playback:" + player.currentTime);
-          socket.send("playback:" + player.currentTime);
+          console.log("Player (" + id + ") > " + "status:playback:" + player.currentTime);
+          socket.send("status:playback:" + player.currentTime);
       }
   }, 10000);
 
@@ -154,7 +148,7 @@
                   player.pause();
               break;
           case "Enter":
-              skip(nextID); 
+                 socket.send("control:skip");
               break;
       } 
   });
@@ -168,36 +162,20 @@
   // Skip to the next media
   function skip(nid)
   {
-      // Stop the current media
-      player.pause();
-      player.setAttribute("src", "");
-      player.load();
+        console.log("shud skip to " + nid)
+        // Stop the current media
+        player.pause();
+        player.setAttribute("src", "");
+        player.load();
 
-      // Close old socket, create new
-      closeSocket();
+        id = nid;
 
-      id = nid;
-      nid = 0;
-
-      socket.onclose = function() 
-      {
-          openSocket(id);
-
-          socket.onopen = function() 
-          {
-              socket.send("query:mediaInfo");
-
-              // Load the new media
-              player.setAttribute("src", "/player/load?id=" + id);
-              player.load();
-              player.play();
-
-              socket.send("query:nextID");
-          }
-      }
+        player.setAttribute("src", "/player/load?id=" + id + "#");
+        player.load();
+        player.play();
   }
   
   </script>
-
+{{end}}
 {{template "footer" . }}
 {{end}}

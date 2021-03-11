@@ -32,7 +32,7 @@
 {{ if .Contents.RemoteID }}
 <div class="box box-success">
   <div class="box-header with-border">
-    <h3 class="box-title">{{ .Contents.RemoteMediaInfo.Title }}</h3>
+    <h3 id="currently-watching" class="box-title">{{ .Contents.RemoteMediaInfo.Title }}</h3>
     <div class="box-tools pull-right">
       <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
     </div>
@@ -45,15 +45,13 @@
     <button class="btn btn-danger player-skip" style="margin-top:5px;">Skip</button>
   </div>
 </div>
-{{end}}
 
 <script type="text/javascript">
 
   var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
-  var id = "{{ .Contents.RemoteMediaInfo.ID }}";
-  var nextID = "{{ .Contents.NextMediaItem }}";
+  var id = "{{ .Contents.RemoteID }}";
 
-  socket = new WebSocket("ws://" + wsurl + "/player/ws-setup");
+  socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/remote?id=" + id);
 
   socket.onmessage = function(msg) 
   {
@@ -62,14 +60,20 @@
         console.log("Remote Received: " + msg.data)
         var commands = msg.data.split(":");
 
-        for (let i = 0; i < commands.length; i += 2) {
-              var key = commands[i];
-              var val = commands[i+1];
+        for (let i = 0; i < commands.length; i += 3) {
+              var type = commands[i];
+              var key = commands[i+1];
+              var val = commands[i+2];
 
               switch(key) {
-                  case "nextID":
-                      nextID = val;
+                  case "skip-to":
+                      id = val;
+                      socket.send("change-id:" + val);
                       break;
+                  case "media-info":
+                        var mediaInfo = val.split(";");
+                        $("#currently-watching").text(mediaInfo[1]);
+                        break;
               }
           } 
       }
@@ -77,33 +81,31 @@
 
   $(".player-play").on("click", function(e)
   {
-      socket.send(id + ":" + "play");
+      socket.send("control:play");
   });
 
   $(".player-pause").on("click", function(e)
   {
-      socket.send(id + ":" + "pause");
+      socket.send("control:pause");
   });
 
   $(".player-rewind").on("click", function(e)
   {
-      socket.send(id + ":" + "rewind" + ":" + 10);
+      socket.send("control:rewind");
   });
 
   $(".player-fastforward").on("click", function(e)
   {
-      socket.send(id + ":" + "fastforward" + ":" + 10);
+      socket.send("control:fastforward");
   });
 
   $(".player-skip").on("click", function(e)
   {
-      console.log("Remote (" + id + ") skipping to " + nextID);
-      socket.send(id + ":" + "skip" + ":" + nextID);
-      id = nextID;
-      socket.send("query:nextID:" + nextID);
+      socket.send("control:skip");
   });
 
 </script>
+{{end}}
 
 {{template "footer" . }}
 {{end}}

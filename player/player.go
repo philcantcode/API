@@ -27,8 +27,7 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		Files       []utils.File
 
 		// Media that is being played
-		MediaInfo     database.MediaInfo
-		NextMediaItem int
+		MediaInfo database.MediaInfo
 	}{
 		IP:        utils.Host,
 		Port:      utils.Port,
@@ -53,14 +52,6 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Play the media in the playParam
-	if playParam != "" {
-
-		// Find the next media ID
-		nextMedia := utils.GetNextMatchingOrderedFile(data.MediaInfo.Folder, data.MediaInfo.Path)
-		data.NextMediaItem = database.FindOrCreateMedia(nextMedia).ID
-	}
-
 	playerPage.Contents = data
 	templates.ExecuteTemplate(w, "player", playerPage)
 }
@@ -81,7 +72,7 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, mediaInfo.Path)
 	}
 
-	OpenChannel(mediaInfo)
+	//OpenChannel(mediaInfo)
 }
 
 // When a playback update comes in

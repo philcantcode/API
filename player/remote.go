@@ -24,16 +24,12 @@ func RemotePage(w http.ResponseWriter, r *http.Request) {
 		// If a remote is selected, media is selected
 		RemoteID        int
 		RemoteMediaInfo database.MediaInfo
-		NextMediaItem   int
 	}{
 		IP:              utils.Host,
 		Port:            utils.Port,
 		RemoteID:        remoteID,
 		RemoteMediaInfo: database.SelectMediaByID(remoteID),
 	}
-
-	nextMedia := utils.GetNextMatchingOrderedFile(data.RemoteMediaInfo.Folder, data.RemoteMediaInfo.Path)
-	data.NextMediaItem = database.FindOrCreateMedia(nextMedia).ID
 
 	for _, channel := range channels {
 		data.OpenMediaInfoList = append(data.OpenMediaInfoList, channel.mediaInfo)
