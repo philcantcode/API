@@ -119,6 +119,7 @@ func GetDrives() (r []string) {
 
 	usr, _ := user.Current()
 	r = append(r, usr.HomeDir)
+	r = append(r, "/Volumes")
 
 	return
 }
