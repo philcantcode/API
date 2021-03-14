@@ -1,22 +1,26 @@
 package utils
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
+var alphaNumFilter *regexp.Regexp
+
+func init() {
+	alphaNumFilter, _ = regexp.Compile("[^A-Za-z0-9]+")
+}
+
 // File represents a file on OS
 type File struct {
-	NameWithExt    string
-	NameWithoutExt string
-	NameWithSpaces string
-	PathWithName   string
-	Path           string
-	Extension      string
+	Name      string // No Extension
+	PrintName string // No Extension, spaces
+	Path      string // Folder
+	Ext       string // .Extension
 }
 
 // GetFolderLayer returns a list of folders
@@ -40,7 +44,7 @@ func GetFilesLayer(path string) []File {
 
 	for _, file := range files {
 		if !file.IsDir() && isLegalPath(file.Name()) {
-			f := File{NameWithExt: file.Name(), PathWithName: filepath.Join(path, file.Name())}
+			f := ProcessFile(filepath.Join(path, file.Name()))
 			fileList = append(fileList, f)
 		}
 	}
@@ -68,33 +72,39 @@ func isLegalPath(path string) bool {
 	}
 }
 
-// ExtractFileName extracts the file name from a path
-func ExtractFileName(fileName string) File {
+// ProcessFile extracts the file name from a path
+func ProcessFile(path string) File {
+	sep := string(filepath.Separator)
+	file := File{}
 
-	file := File{PathWithName: fileName}
+	// If there is a system separator in the path
+	if strings.Contains(path, sep) {
+		tokens := strings.Split(path, sep)
+		fileName := tokens[len(tokens)-1] // Last token = file name
+		filePath := strings.Join(tokens[0:len(tokens)-1], sep)
 
-	paths := strings.Split(fileName, string(filepath.Separator))
-	fileName = paths[len(paths)-1]
+		file.Path = filePath + sep
 
-	file.Path = strings.Join(paths[0:len(paths)-1], string(filepath.Separator))
-	file.NameWithExt = fileName
+		// If contains an extension
+		if strings.Contains(fileName, ".") {
+			fileTokens := strings.Split(fileName, ".")
+			fileExt := fileTokens[len(fileTokens)-1]
+			fileName := strings.Join(fileTokens[0:len(fileTokens)-1], ".")
 
-	name := strings.Split(fileName, ".")
+			file.Ext = "." + fileExt
+			file.Name = fileName
 
-	file.NameWithoutExt = name[0]
-	file.Extension = name[len(name)-1]
-	file.NameWithSpaces = strings.ReplaceAll(fileName, ".", " ")
+			fileName = alphaNumFilter.ReplaceAllString(fileName, " ")
+			file.PrintName = fileName
+		} else {
+			file.Name = fileName
+		}
 
-	fmt.Printf("New File: %+v", file)
+	}
+
+	//fmt.Printf("File: %s [%s] \n\t Printable: %s \n\t Path: %s \n\t", file.Name, file.Ext, file.PrintName, file.Path)
 
 	return file
-}
-
-// ExtractFolderName extracts the file name from a path
-func ExtractFolderName(path string) string {
-	paths := strings.Split(path, string(filepath.Separator))
-
-	return strings.Join(paths[:len(paths)-1], string(filepath.Separator))
 }
 
 // GetDrives returns a list of windows OS drives
@@ -114,14 +124,14 @@ func GetDrives() (r []string) {
 }
 
 // GetNextMatchingOrderedFile Takes in a folder and file, returns the next ordered file or returns "" if none found
-func GetNextMatchingOrderedFile(folder string, file string) string {
-	files := GetFilesLayer(folder)
+func GetNextMatchingOrderedFile(file File) string {
+	files := GetFilesLayer(file.Path)
 
 	for i := 0; i < len(files); i++ {
-		if files[i].PathWithName == file {
+		if files[i].Name == file.Name {
 			for j := i + 1; j < len(files); j++ {
-				if filepath.Ext(files[j].PathWithName) == filepath.Ext(file) {
-					return files[j].PathWithName
+				if files[j].Ext == file.Ext {
+					return files[j].Path + files[j].Name + files[j].Ext
 				}
 			}
 		}

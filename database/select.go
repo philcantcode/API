@@ -10,9 +10,9 @@ type Directory struct {
 	Path string
 }
 
-// GetDirectories returns all the locations monitored on disk
-func GetDirectories() []Directory {
-	rows, _ := database.Query("SELECT * FROM watchFolders;")
+// SelectDirectories returns all the locations monitored on disk
+func SelectDirectories() []Directory {
+	rows, _ := con.Query("SELECT * FROM watchFolders;")
 	var res []Directory
 
 	for rows.Next() {
@@ -39,7 +39,7 @@ type MediaInfo struct {
 
 // SelectMedia finds the playback in the database
 func SelectMedia(path string) MediaInfo {
-	stmt, _ := database.Prepare(
+	stmt, _ := con.Prepare(
 		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `path` = ? LIMIT 1;")
 
@@ -51,14 +51,14 @@ func SelectMedia(path string) MediaInfo {
 			&media.Path, &media.PlayTime, &media.Date)
 	}
 
-	media.Folder = utils.ExtractFolderName(media.Path)
+	media.Folder = utils.ProcessFile(media.Path).Path
 
 	return media
 }
 
 // SelectMediaByID finds the playback in the database
 func SelectMediaByID(id int) MediaInfo {
-	stmt, _ := database.Prepare(
+	stmt, _ := con.Prepare(
 		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `id` = ? LIMIT 1;")
 
@@ -70,7 +70,7 @@ func SelectMediaByID(id int) MediaInfo {
 			&media.Path, &media.PlayTime, &media.Date)
 	}
 
-	media.Folder = utils.ExtractFolderName(media.Path)
+	media.Folder = utils.ProcessFile(media.Path).Path
 
 	return media
 }

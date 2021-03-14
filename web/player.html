@@ -24,7 +24,7 @@
 
       <div class="box-body">
         {{range .Contents.Files}}
-        <a href="?play={{ .Path }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}</a>
+        <a href="?play={{ .Path }}{{ .Name }}{{ .Ext }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}{{ .Ext }}</a>
         {{end}}
       </div>
 

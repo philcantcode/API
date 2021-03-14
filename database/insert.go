@@ -1,19 +1,21 @@
 package database
 
-import (
-	"github.com/philcantcode/goApi/utils"
-)
+import "github.com/philcantcode/goApi/utils"
 
 func InsertFolder(folder string) {
-	statement, _ := database.Prepare("INSERT INTO watchFolders (path)" +
+	statement, _ := con.Prepare("INSERT INTO watchFolders (path)" +
 		"VALUES (?);")
 
 	statement.Exec(folder)
 }
 
 func InsertMedia(path string) {
-	statement, _ := database.Prepare("INSERT INTO `playHistory`" +
+	statement, _ := con.Prepare("INSERT INTO `playHistory`" +
 		"(name, hash, path, playTime, date) VALUES (?, ?, ?, ?, ?)")
 
-	statement.Exec(utils.ExtractFileName(path), "", path, 0, utils.GetTime())
+	f := utils.ProcessFile(path)
+	name := f.Name + f.Ext
+	path = f.Path + name
+
+	statement.Exec(name, "", path, 0, utils.GetTime())
 }

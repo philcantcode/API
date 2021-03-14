@@ -6,7 +6,7 @@ import (
 
 // UpdatePlaytime updates the playtime for a media ID
 func UpdatePlaytime(id int, playtime int) {
-	stmt, _ := database.Prepare(
+	stmt, _ := con.Prepare(
 		"UPDATE `playHistory` SET playTime = ?," +
 			"date = ? WHERE id = ?;")
 

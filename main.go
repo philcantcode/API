@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/philcantcode/goApi/player"
@@ -12,10 +11,7 @@ import (
 
 // Handle incoming web requests and direct them to the folder
 func main() {
-
-	file := utils.ExtractFileName("/Users/Phil/Desktop/Media/Family Guy/Family Guy - Stewie Griffin- The Untold Story.avi")
-	utils.ConvertMediaFile(file)
-	os.Exit(0)
+	go player.ConvertTrackedMediaDrives()
 
 	router := mux.NewRouter()
 

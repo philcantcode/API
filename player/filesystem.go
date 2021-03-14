@@ -23,7 +23,7 @@ func FileTrack(w http.ResponseWriter, r *http.Request) {
 		TrackedFolders []database.Directory
 	}{
 		Selected:       pathParam,
-		TrackedFolders: database.GetDirectories(),
+		TrackedFolders: database.SelectDirectories(),
 		Drives:         utils.GetDrives(),
 	}
 

@@ -36,7 +36,7 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find top level directories
-	for _, s := range database.GetDirectories() {
+	for _, s := range database.SelectDirectories() {
 		data.Directories = append(data.Directories, s.Path)
 	}
 
@@ -83,7 +83,7 @@ func playbackUpdate(playTimeStr string, mediaID int) {
 
 func findNextMedia(mediaID int) int {
 	prevMedia := database.SelectMediaByID(mediaID)
-	nextMedia := utils.GetNextMatchingOrderedFile(prevMedia.Folder, prevMedia.Path)
+	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(prevMedia.Path))
 	nextID := database.FindOrCreateMedia(nextMedia).ID
 
 	return nextID
