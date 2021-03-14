@@ -1,6 +1,7 @@
 package player
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -16,21 +17,27 @@ import (
 const videoCodec = "libx264"
 const audioCodec = "libmp3lame"
 
-var ffmpegExe string
+var ffmpegPath string
+var ffmpegZip string
 
 func init() {
 	os := runtime.GOOS
 
 	switch os {
 	case "windows":
-		ffmpegExe = "./res/ffmpeg-win7/bin/ffmpeg.exe"
+		ffmpegPath = "./res/ffmpeg/ffmpeg.exe"
+		ffmpegZip = "res/ffmpeg/ffmpeg.zip"
 	case "darwin":
-		ffmpegExe = "/res/ffmpeg-osx/ffmpeg"
+		ffmpegPath = "/res/ffmpeg/ffmpeg-osx"
+		ffmpegZip = "res/ffmpeg/ffmpeg-osx.zip"
 	case "linux":
 		fmt.Println("OS Not Supported For File Conversion")
 	default:
 		fmt.Printf("%s.\n", os)
 	}
+
+	unzipFFMPEG()
+	go ConvertTrackedMediaDrives()
 }
 
 // ConvertTrackedMediaDrives should be run on a new thread
@@ -62,17 +69,22 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	fmt.Printf("Converting to MP4 [%s] %s\n", file.Ext, absFile)
 
-	exec := exec.Command(ffmpegExe, "-hwaccel", "cuda", "-y", "-i", absFile, "-c:v", videoCodec, "-c:a", audioCodec, file.Path+file.Name+".mp4")
+	exec := exec.Command(ffmpegPath, "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", absFile, "-c:v", videoCodec, "-c:a", audioCodec, file.Path+file.Name+".mp4")
 
 	if stdout {
 		exec.Stdout = os.Stdout
 		exec.Stderr = os.Stderr
 	}
 
+	var outb, errb bytes.Buffer
+	exec.Stdout = &outb
+	exec.Stderr = &errb
+
 	err := exec.Run()
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("err:", errb.String())
+		log.Println(err)
 		return
 	}
 
@@ -87,4 +99,21 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	os.Mkdir(convPath, 0755)
 	os.Rename(absFile, convPath+sep+file.Name+file.Ext)
+}
+
+func unzipFFMPEG() {
+	_, err := os.Stat(ffmpegPath)
+
+	if os.IsNotExist(err) {
+		fmt.Println("Unzipping " + ffmpegZip)
+		exec := exec.Command("tar", "-xf", ffmpegZip, "--directory", "res/ffmpeg")
+		exec.Stdout = os.Stdout
+		exec.Stderr = os.Stderr
+		err := exec.Run()
+
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+	}
 }

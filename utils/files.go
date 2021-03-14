@@ -99,7 +99,6 @@ func ProcessFile(path string) File {
 		} else {
 			file.Name = fileName
 		}
-
 	}
 
 	//fmt.Printf("File: %s [%s] \n\t Printable: %s \n\t Path: %s \n\t", file.Name, file.Ext, file.PrintName, file.Path)

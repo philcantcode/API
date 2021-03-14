@@ -11,8 +11,6 @@ import (
 
 // Handle incoming web requests and direct them to the folder
 func main() {
-	go player.ConvertTrackedMediaDrives()
-
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", player.IndexPage)
