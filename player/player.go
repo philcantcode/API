@@ -8,6 +8,14 @@ import (
 	"github.com/philcantcode/goApi/utils"
 )
 
+var playerPage = page{
+	PageTitle:       "Player",
+	PageDescription: "Local Player",
+	PreviousPath:    "Home",
+	PreviousPathURL: "/",
+	CurrentPath:     "Player",
+}
+
 // PlayerPage handles the /player request
 func PlayerPage(w http.ResponseWriter, r *http.Request) {
 	reload()

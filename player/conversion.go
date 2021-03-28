@@ -23,7 +23,7 @@ var ffmpegPath string
 var ffmpegZip string
 
 var FfmpegStat []ConversionHistory
-var ConversionPriorityFolder = "" //"F:\\The Tudors\\Season 1"
+var ConversionPriorityFolder = ""
 
 type ConversionHistory struct {
 	File      string
@@ -72,6 +72,7 @@ func ConvertTrackedMediaDrives() {
 			filepath.Walk(folder, convertWalkFunc)
 		} else {
 			for i := 0; i < len(drives); i++ {
+				fmt.Println(drives[i].Path)
 				filepath.Walk(drives[i].Path, convertWalkFunc)
 
 				if ConversionPriorityFolder != "" {
@@ -99,7 +100,7 @@ func convertWalkFunc(path string, info os.FileInfo, err error) error {
 func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	// Setup commands for file types
-	if file.Ext != ".avi" { // && file.Ext != ".mkv" {
+	if file.Ext != ".avi" && file.Ext != ".mkv" {
 		return
 	}
 

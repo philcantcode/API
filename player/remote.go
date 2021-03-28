@@ -8,6 +8,14 @@ import (
 	"github.com/philcantcode/goApi/utils"
 )
 
+var remotePage = page{
+	PageTitle:       "Remote Control",
+	PageDescription: "Control the playback on other screens",
+	PreviousPath:    "Player",
+	PreviousPathURL: "/player",
+	CurrentPath:     "Remote",
+}
+
 // RemotePage handles the remote controller
 func RemotePage(w http.ResponseWriter, r *http.Request) {
 	reload()

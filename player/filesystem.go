@@ -8,6 +8,14 @@ import (
 	"github.com/philcantcode/goApi/utils"
 )
 
+var localTrackPage = page{
+	PageTitle:       "Local Files",
+	PageDescription: "Track Local Files",
+	PreviousPath:    "Home",
+	PreviousPathURL: "/",
+	CurrentPath:     "OS",
+}
+
 // FileTrack handles the /os request
 func FileTrack(w http.ResponseWriter, r *http.Request) {
 	reload()
