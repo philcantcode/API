@@ -49,6 +49,7 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		// Find files in folder
 		for _, s := range utils.GetFilesLayer(openParam) {
 			data.Files = append(data.Files, s)
+			ConversionPriorityFolder = openParam
 		}
 	}
 
@@ -71,8 +72,6 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 		mediaInfo = database.SelectMediaByID(id)
 		http.ServeFile(w, r, mediaInfo.Path)
 	}
-
-	//OpenChannel(mediaInfo)
 }
 
 // When a playback update comes in

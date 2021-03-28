@@ -29,7 +29,7 @@ func GetFolderLayer(path string) []string {
 	var folders []string
 
 	for _, file := range files {
-		if file.IsDir() && isLegalPath(file.Name()) {
+		if file.IsDir() && IsLegalPath(file.Name()) {
 			folders = append(folders, filepath.Join(path, file.Name()))
 		}
 	}
@@ -43,7 +43,7 @@ func GetFilesLayer(path string) []File {
 	var fileList []File
 
 	for _, file := range files {
-		if !file.IsDir() && isLegalPath(file.Name()) {
+		if !file.IsDir() && IsLegalPath(file.Name()) {
 			f := ProcessFile(filepath.Join(path, file.Name()))
 			fileList = append(fileList, f)
 		}
@@ -52,13 +52,15 @@ func GetFilesLayer(path string) []File {
 	return fileList
 }
 
-func isLegalPath(path string) bool {
+func IsLegalPath(path string) bool {
+
+	f := ProcessFile(path)
 
 	if len(path) == 0 {
 		return false
 	}
 
-	if path == "System Volume Information" {
+	if f.Name == "System Volume Information" {
 		return false
 	}
 
@@ -67,9 +69,18 @@ func isLegalPath(path string) bool {
 		return false
 	case "$":
 		return false
-	default:
-		return true
 	}
+
+	if len(f.Name) > 0 {
+		switch string(f.Name[0]) {
+		case ".":
+			return false
+		case "$":
+			return false
+		}
+	}
+
+	return true
 }
 
 // ProcessFile extracts the file name from a path
@@ -99,9 +110,21 @@ func ProcessFile(path string) File {
 		} else {
 			file.Name = fileName
 		}
-	}
+	} else { // Single file or folder
+		if strings.Contains(path, ".") {
+			fileTokens := strings.Split(path, ".")
+			fileExt := fileTokens[len(fileTokens)-1]
+			fileName := strings.Join(fileTokens[0:len(fileTokens)-1], ".")
 
-	//fmt.Printf("File: %s [%s] \n\t Printable: %s \n\t Path: %s \n\t", file.Name, file.Ext, file.PrintName, file.Path)
+			file.Ext = "." + fileExt
+			file.Name = fileName
+
+			fileName = alphaNumFilter.ReplaceAllString(fileName, " ")
+			file.PrintName = fileName
+		} else {
+			file.Name = path
+		}
+	}
 
 	return file
 }

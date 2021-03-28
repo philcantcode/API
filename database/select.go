@@ -12,7 +12,7 @@ type Directory struct {
 
 // SelectDirectories returns all the locations monitored on disk
 func SelectDirectories() []Directory {
-	rows, _ := con.Query("SELECT * FROM watchFolders;")
+	rows, _ := con.Query("SELECT * FROM watchFolders ORDER BY id DESC;")
 	var res []Directory
 
 	for rows.Next() {
