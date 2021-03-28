@@ -1,16 +1,13 @@
 package database
 
-import (
-	"github.com/philcantcode/goApi/utils"
-)
+import "time"
 
 // UpdatePlaytime updates the playtime for a media ID
 func UpdatePlaytime(id int, playtime int) {
 	stmt, _ := con.Prepare(
-		"UPDATE `playHistory` SET playTime = ?," +
-			"date = ? WHERE id = ?;")
+		"UPDATE `playHistory` SET playTime = ?, date = ? WHERE id = ?;")
 
-	stmt.Exec(playtime, utils.GetTime(), id)
+	stmt.Exec(playtime, time.Now().Unix(), id)
 }
 
 func UpdateMediaName(oldName string, newName string) {

@@ -24,7 +24,7 @@
 
       <div class="box-body">
         {{range .Contents.Files}}
-        <a href="?play={{ .Path }}{{ .Name }}{{ .Ext }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}{{ .Ext }}</a>
+        <a href="?play={{ .AbsPath }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}{{ .Ext }}</a>
         {{end}}
       </div>
 
@@ -39,23 +39,23 @@
     </div>
   </div>
   <div class="box-body">
-    {{range .Contents.ContinueWatching}}
-    <a href="?open={{ . }}" class="btn btn-primary" style="margin-top:5px;">{{ . }}</a>
+    {{range .Contents.RecentlyPlayed}}
+    <a href="?play={{ .File.AbsPath }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Title }}</a>
     {{end}}
   </div>
 </div>
 
-{{ if .Contents.MediaInfo.Title }}
+{{ if .Contents.MediaInfo.File.Path }}
 <div class="box box-success">
   <div class="box-header with-border">
-    <h3 class="box-title wrap">Currently Watching <span id="currently-watching">{{ .Contents.MediaInfo.Title }}</span></h3>
+    <h3 class="box-title wrap">Currently Watching <span id="currently-watching">{{ .Contents.MediaInfo.File.PrintName }}</span></h3>
     <div class="box-tools pull-right">
       <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
     </div>
   </div>
   
   <div class="box-body">    
-    <video controls autoplay id="player" width="100%" src="/player/load?file={{ .Contents.MediaInfo.Path }}#t={{ .Contents.MediaInfo.PlayTime }}">
+    <video controls autoplay id="player" width="100%" src="/player/load?file={{ .Contents.MediaInfo.File.AbsPath }}#t={{ .Contents.MediaInfo.PlayTime }}">
       <track label="English subtitles" kind="subtitles" srclang="en" src="" default=""> 
       Your browser does not support the HTML5 Video element.
     </video>

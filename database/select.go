@@ -29,29 +29,29 @@ func SelectDirectories() []Directory {
 // MediaInfo is the default struct for a database item
 type MediaInfo struct {
 	ID       int
-	Title    string
 	Hash     string
-	Path     string
-	Folder   string
 	PlayTime int
 	Date     int
+	File     utils.File
 }
 
 // SelectMedia finds the playback in the database
 func SelectMedia(path string) MediaInfo {
 	stmt, _ := con.Prepare(
-		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
+		"SELECT `id`, `hash`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `path` = ? LIMIT 1;")
 
 	media := MediaInfo{}
 	rows, _ := stmt.Query(path)
 
 	for rows.Next() {
-		rows.Scan(&media.ID, &media.Title, &media.Hash,
-			&media.Path, &media.PlayTime, &media.Date)
-	}
+		var dbPath string
 
-	media.Folder = utils.ProcessFile(media.Path).Path
+		rows.Scan(&media.ID, &media.Hash,
+			&dbPath, &media.PlayTime, &media.Date)
+
+		media.File = utils.ProcessFile(dbPath)
+	}
 
 	return media
 }
@@ -59,18 +59,20 @@ func SelectMedia(path string) MediaInfo {
 // SelectMediaByID finds the playback in the database
 func SelectMediaByID(id int) MediaInfo {
 	stmt, _ := con.Prepare(
-		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
+		"SELECT `id`, `hash`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `id` = ? LIMIT 1;")
 
 	media := MediaInfo{}
 	rows, _ := stmt.Query(id)
 
 	for rows.Next() {
-		rows.Scan(&media.ID, &media.Title, &media.Hash,
-			&media.Path, &media.PlayTime, &media.Date)
-	}
+		var dbPath string
 
-	media.Folder = utils.ProcessFile(media.Path).Path
+		rows.Scan(&media.ID, &media.Hash,
+			&dbPath, &media.PlayTime, &media.Date)
+
+		media.File = utils.ProcessFile(dbPath)
+	}
 
 	return media
 }
@@ -81,18 +83,19 @@ func SelectMediaByTime(unixTime int64) []MediaInfo {
 	var mediaList []MediaInfo
 
 	stmt, _ := con.Prepare(
-		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
+		"SELECT `id`, `hash`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `date` >= ?;")
 
 	rows, _ := stmt.Query(unixTime)
 
 	for rows.Next() {
 		media := MediaInfo{}
+		var dbPath string
 
-		rows.Scan(&media.ID, &media.Title, &media.Hash,
-			&media.Path, &media.PlayTime, &media.Date)
+		rows.Scan(&media.ID, &media.Hash,
+			&dbPath, &media.PlayTime, &media.Date)
 
-		media.Folder = utils.ProcessFile(media.Path).Path
+		media.File = utils.ProcessFile(dbPath)
 		mediaList = append(mediaList, media)
 	}
 

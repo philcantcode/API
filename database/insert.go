@@ -1,6 +1,10 @@
 package database
 
-import "github.com/philcantcode/goApi/utils"
+import (
+	"time"
+
+	"github.com/philcantcode/goApi/utils"
+)
 
 func InsertFolder(folder string) {
 	statement, _ := con.Prepare("INSERT INTO watchFolders (path)" +
@@ -17,5 +21,5 @@ func InsertMedia(path string) {
 	name := f.Name + f.Ext
 	path = f.Path + name
 
-	statement.Exec(name, "", path, 0, utils.GetTime())
+	statement.Exec(name, "", path, 0, time.Now().Unix())
 }

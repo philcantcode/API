@@ -191,7 +191,7 @@ func controls(cmd command, id int) {
 		delete(channels, id)
 
 		media := database.SelectMediaByID(nextID)
-		ret := fmt.Sprintf("update:media-info:%d;%s;%s;%s;%s;%d;%d", id, media.Title, media.Hash, media.Path, media.Folder, media.PlayTime, media.Date)
+		ret := fmt.Sprintf("update:media-info:%d;%s;%s;%s;%s;%d;%d", id, media.File.Name, media.Hash, media.File.AbsPath, media.File.Path, media.PlayTime, media.Date)
 
 		sendToPlayers(ret, nextID)
 		sendToRemotes(ret, nextID)

@@ -1,9 +1,9 @@
 package player
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/philcantcode/goApi/database"
@@ -16,6 +16,11 @@ var playerPage = page{
 	PreviousPath:    "Home",
 	PreviousPathURL: "/",
 	CurrentPath:     "player",
+}
+
+type RecentlyPlayed struct {
+	Title string
+	File  utils.File
 }
 
 // PlayerPage handles the /player request
@@ -32,25 +37,27 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		OpenParam string
 
 		// File selector menu containing Directories > Folders > Files
-		Directories      []string
-		SubFolders       []string
-		Files            []utils.File
-		ContinueWatching []utils.File
+		Directories    []string
+		SubFolders     []string
+		Files          []utils.File
+		RecentlyPlayed []RecentlyPlayed
 
 		// Media that is being played
 		MediaInfo database.MediaInfo
 	}{
-		IP:        utils.Host,
-		Port:      utils.Port,
-		MediaInfo: database.FindOrCreateMedia(playParam),
-		OpenParam: openParam,
+		IP:             utils.Host,
+		Port:           utils.Port,
+		OpenParam:      openParam,
+		RecentlyPlayed: getRecentlyWatched(),
 	}
-
-	getRecentlyWatched()
 
 	// Find top level directories
 	for _, s := range database.SelectDirectories() {
 		data.Directories = append(data.Directories, s.Path)
+	}
+
+	if playParam != "" {
+		data.MediaInfo = database.FindOrCreateMedia(playParam)
 	}
 
 	if openParam != "" {
@@ -70,12 +77,73 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "player", playerPage)
 }
 
-func getRecentlyWatched() {
-	// Get a 1 month time period
-	pastMonth := time.Now().AddDate(0, 0, -10).Unix()
+func getRecentlyWatched() []RecentlyPlayed {
+	// Get a past time period -n days
+	timeRange := time.Now().AddDate(0, 0, -10).Unix()
+	mediaList := database.SelectMediaByTime(timeRange)
+	recent := make(map[string]database.MediaInfo)
 
-	mediaList := database.SelectMediaByTime(pastMonth)
-	fmt.Printf("Loaded Recent (%d): %d\n", pastMonth, len(mediaList))
+	for i := 0; i < len(mediaList); i++ {
+		hasCategory := false
+
+		for j := 0; j < len(mediaList[i].File.PathTokens); j++ {
+			nthToken := mediaList[i].File.PathTokens[j]
+
+			// Handles media ordered by category
+			if strings.Contains(nthToken, "Category - ") {
+				nextToken := mediaList[i].File.PathTokens[j+1]
+				media, found := recent[nextToken]
+
+				if !found {
+					recent[nextToken] = mediaList[i]
+				} else {
+					if media.Date >= recent[nextToken].Date {
+						recent[nextToken] = mediaList[i]
+					}
+				}
+
+				hasCategory = true
+			}
+		}
+
+		// If the media isn't ordered by a category
+		if !hasCategory {
+			folderName := mediaList[i].File.PathTokens[1]
+			_, titleFound := recent[folderName]
+
+			if !titleFound {
+				recent[folderName] = mediaList[i]
+			} else {
+				if mediaList[i].Date > recent[folderName].Date {
+					recent[folderName] = mediaList[i]
+				}
+			}
+		}
+	}
+
+	var recentFiles []RecentlyPlayed
+
+	var processed []string
+
+	for i := 0; i < len(recent); i++ {
+		highest := 0
+		highestStr := ""
+
+		for title, value := range recent {
+			if value.Date >= highest && !utils.Contains(title, processed) {
+				highest = value.Date
+				highestStr = title
+			}
+		}
+
+		processed = append(processed, highestStr)
+	}
+
+	for i := 0; i < len(processed); i++ {
+		recentFiles = append(recentFiles, RecentlyPlayed{Title: processed[i], File: recent[processed[i]].File})
+	}
+
+	return recentFiles
 }
 
 // LoadMedia takes a file or ID GET param, then loads the media
@@ -91,7 +159,7 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 
 	if id != 0 {
 		mediaInfo = database.SelectMediaByID(id)
-		http.ServeFile(w, r, mediaInfo.Path)
+		http.ServeFile(w, r, mediaInfo.File.AbsPath)
 	}
 }
 
@@ -103,7 +171,7 @@ func playbackUpdate(playTimeStr string, mediaID int) {
 
 func findNextMedia(mediaID int) int {
 	prevMedia := database.SelectMediaByID(mediaID)
-	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(prevMedia.Path))
+	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(prevMedia.File.AbsPath))
 	nextID := database.FindOrCreateMedia(nextMedia).ID
 
 	return nextID

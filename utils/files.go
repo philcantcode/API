@@ -21,6 +21,9 @@ type File struct {
 	PrintName string // No Extension, spaces
 	Path      string // Folder
 	Ext       string // .Extension
+
+	AbsPath    string   // Path + Name + Ext
+	PathTokens []string // Each piece of the file path
 }
 
 // GetFolderLayer returns a list of folders
@@ -53,7 +56,6 @@ func GetFilesLayer(path string) []File {
 }
 
 func IsLegalPath(path string) bool {
-
 	f := ProcessFile(path)
 
 	if len(path) == 0 {
@@ -95,6 +97,7 @@ func ProcessFile(path string) File {
 		filePath := strings.Join(tokens[0:len(tokens)-1], sep)
 
 		file.Path = filePath + sep
+		file.PathTokens = tokens
 
 		// If contains an extension
 		if strings.Contains(fileName, ".") {
@@ -125,6 +128,8 @@ func ProcessFile(path string) File {
 			file.Name = path
 		}
 	}
+
+	file.AbsPath = file.Path + file.Name + file.Ext
 
 	return file
 }
