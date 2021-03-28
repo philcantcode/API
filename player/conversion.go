@@ -47,17 +47,18 @@ func init() {
 	case "windows":
 		ffmpegPath = "./res/ffmpeg/ffmpeg.exe"
 		ffmpegZip = "res/ffmpeg/ffmpeg.zip"
+		unzipFFMPEG()
+		go ConvertTrackedMediaDrives()
 	case "darwin":
 		ffmpegPath = "/res/ffmpeg/ffmpeg-osx"
 		ffmpegZip = "res/ffmpeg/ffmpeg-osx.zip"
+		unzipFFMPEG()
+		go ConvertTrackedMediaDrives()
 	case "linux":
 		fmt.Println("OS Not Supported For File Conversion")
 	default:
 		fmt.Printf("%s.\n", os)
 	}
-
-	unzipFFMPEG()
-	go ConvertTrackedMediaDrives()
 }
 
 // ConvertTrackedMediaDrives should be run on a new thread

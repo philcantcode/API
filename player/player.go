@@ -1,8 +1,10 @@
 package player
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/philcantcode/goApi/database"
 	"github.com/philcantcode/goApi/utils"
@@ -13,7 +15,7 @@ var playerPage = page{
 	PageDescription: "Local Player",
 	PreviousPath:    "Home",
 	PreviousPathURL: "/",
-	CurrentPath:     "Player",
+	CurrentPath:     "player",
 }
 
 // PlayerPage handles the /player request
@@ -30,9 +32,10 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		OpenParam string
 
 		// File selector menu containing Directories > Folders > Files
-		Directories []string
-		SubFolders  []string
-		Files       []utils.File
+		Directories      []string
+		SubFolders       []string
+		Files            []utils.File
+		ContinueWatching []utils.File
 
 		// Media that is being played
 		MediaInfo database.MediaInfo
@@ -42,6 +45,8 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		MediaInfo: database.FindOrCreateMedia(playParam),
 		OpenParam: openParam,
 	}
+
+	getRecentlyWatched()
 
 	// Find top level directories
 	for _, s := range database.SelectDirectories() {
@@ -63,6 +68,14 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 
 	playerPage.Contents = data
 	templates.ExecuteTemplate(w, "player", playerPage)
+}
+
+func getRecentlyWatched() {
+	// Get a 1 month time period
+	pastMonth := time.Now().AddDate(0, 0, -10).Unix()
+
+	mediaList := database.SelectMediaByTime(pastMonth)
+	fmt.Printf("Loaded Recent (%d): %d\n", pastMonth, len(mediaList))
 }
 
 // LoadMedia takes a file or ID GET param, then loads the media

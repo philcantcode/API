@@ -74,3 +74,27 @@ func SelectMediaByID(id int) MediaInfo {
 
 	return media
 }
+
+// SelectMediaByTime finds the playback in the from a given timepoint
+func SelectMediaByTime(unixTime int64) []MediaInfo {
+
+	var mediaList []MediaInfo
+
+	stmt, _ := con.Prepare(
+		"SELECT `id`, `name`, `hash`, `path`, `playTime`, `date`" +
+			"FROM `playHistory` WHERE `date` >= ?;")
+
+	rows, _ := stmt.Query(unixTime)
+
+	for rows.Next() {
+		media := MediaInfo{}
+
+		rows.Scan(&media.ID, &media.Title, &media.Hash,
+			&media.Path, &media.PlayTime, &media.Date)
+
+		media.Folder = utils.ProcessFile(media.Path).Path
+		mediaList = append(mediaList, media)
+	}
+
+	return mediaList
+}

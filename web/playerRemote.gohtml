@@ -1,0 +1,111 @@
+{{define "playerRemote"}}
+{{template "header" . }}
+<div class="box box-success">
+    <div class="box-header with-border">
+      <h3 class="box-title">Loaded Media</h3>
+      <div class="box-tools pull-right">
+        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+      </div>
+    </div>
+    <div class="box-body">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Title</th>
+            <th scope="col">Remote</th>
+          </tr>
+        </thead>
+        <tbody>
+        {{range .Contents.OpenMediaInfoList}}
+          <tr>
+            <th scope="row">{{ .ID }}</th>
+            <td>{{ .Title }}</td>
+            <td><a href="/player/remote?controller={{ .ID }}" class="btn btn-primary" style="margin-top:5px;">Open Remote</a></td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+</div>
+
+{{ if .Contents.RemoteID }}
+<div class="box box-success">
+  <div class="box-header with-border">
+    <h3 id="currently-watching" class="box-title">{{ .Contents.RemoteMediaInfo.Title }}</h3>
+    <div class="box-tools pull-right">
+      <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+    </div>
+  </div>
+  <div class="box-body">
+    <button class="btn btn-primary player-play" style="margin-top:5px;">Play</button>
+    <button class="btn btn-primary player-pause" style="margin-top:5px;">Pause</button>
+    <button class="btn btn-primary player-rewind" style="margin-top:5px;">Rewind</button>
+    <button class="btn btn-primary player-fastforward" style="margin-top:5px;">FastForward</button>
+    <button class="btn btn-danger player-skip" style="margin-top:5px;">Skip</button>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+  var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
+  var id = "{{ .Contents.RemoteID }}";
+
+  socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/remote?id=" + id);
+
+  socket.onmessage = function(msg) 
+  {
+      if (msg.data.length > 0)
+      {
+        console.log("Remote Received: " + msg.data)
+        var commands = msg.data.split(":");
+
+        for (let i = 0; i < commands.length; i += 3) {
+              var type = commands[i];
+              var key = commands[i+1];
+              var val = commands[i+2];
+
+              switch(key) {
+                  case "skip-to":
+                      id = val;
+                      socket.send("change-id:" + val);
+                      break;
+                  case "media-info":
+                        var mediaInfo = val.split(";");
+                        $("#currently-watching").text(mediaInfo[1]);
+                        break;
+              }
+          } 
+      }
+  };
+
+  $(".player-play").on("click", function(e)
+  {
+      socket.send("control:play");
+  });
+
+  $(".player-pause").on("click", function(e)
+  {
+      socket.send("control:pause");
+  });
+
+  $(".player-rewind").on("click", function(e)
+  {
+      socket.send("control:rewind");
+  });
+
+  $(".player-fastforward").on("click", function(e)
+  {
+      socket.send("control:fastforward");
+  });
+
+  $(".player-skip").on("click", function(e)
+  {
+      socket.send("control:skip");
+  });
+
+</script>
+{{end}}
+
+{{template "footer" . }}
+{{end}}

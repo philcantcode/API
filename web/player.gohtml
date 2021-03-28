@@ -31,6 +31,20 @@
     </div>
 </div>
 
+<div class="box box-success">
+  <div class="box-header with-border">
+    <h3 class="box-title">Continue Watching</h3>
+    <div class="box-tools pull-right">
+      <button id="media-list" type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+    </div>
+  </div>
+  <div class="box-body">
+    {{range .Contents.ContinueWatching}}
+    <a href="?open={{ . }}" class="btn btn-primary" style="margin-top:5px;">{{ . }}</a>
+    {{end}}
+  </div>
+</div>
+
 {{ if .Contents.MediaInfo.Title }}
 <div class="box box-success">
   <div class="box-header with-border">

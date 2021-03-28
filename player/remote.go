@@ -44,5 +44,5 @@ func RemotePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	remotePage.Contents = data
-	templates.ExecuteTemplate(w, "remote", remotePage)
+	templates.ExecuteTemplate(w, "playerRemote", remotePage)
 }

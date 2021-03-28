@@ -16,11 +16,10 @@ func main() {
 	router.HandleFunc("/", player.IndexPage)
 	router.HandleFunc("/player", player.PlayerPage)
 	router.HandleFunc("/player/remote", player.RemotePage)
+	router.HandleFunc("/player/manage", player.ManagePage)
 
 	router.HandleFunc("/player/ws-setup/{page}", player.SocketSetup)
 	router.HandleFunc("/player/load", player.LoadMedia)
-
-	router.HandleFunc("/os", player.FileTrack)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))

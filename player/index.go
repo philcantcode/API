@@ -44,5 +44,6 @@ func reload() { // When done, remove calls to reload
 
 // IndexPage handles the / (Root) request
 func IndexPage(w http.ResponseWriter, r *http.Request) {
+	// Loads the template, 2nd param is the name in the .gohtml file at top
 	templates.ExecuteTemplate(w, "index", indexPage)
 }
