@@ -92,6 +92,8 @@ func processor() {
 				switch cmd.ctype {
 				case "control":
 					controls(cmd, id)
+				default:
+					fmt.Println("Socket Processor doesn't recognise remote command")
 				}
 			}
 
@@ -102,6 +104,10 @@ func processor() {
 				switch cmd.ctype {
 				case "status":
 					status(cmd, id)
+				case "control":
+					controls(cmd, id)
+				default:
+					fmt.Println("Socket Processor doesn't recognise player command")
 				}
 			}
 		}

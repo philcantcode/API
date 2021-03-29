@@ -73,7 +73,6 @@ func ConvertTrackedMediaDrives() {
 			filepath.Walk(folder, convertWalkFunc)
 		} else {
 			for i := 0; i < len(drives); i++ {
-				fmt.Println(drives[i].Path)
 				filepath.Walk(drives[i].Path, convertWalkFunc)
 
 				if ConversionPriorityFolder != "" {
@@ -85,11 +84,12 @@ func ConvertTrackedMediaDrives() {
 }
 
 func convertWalkFunc(path string, info os.FileInfo, err error) error {
-	if !info.IsDir() {
+	_, fErr := os.Stat(path)
+
+	if fErr == nil && !info.IsDir() {
 		ConvertToMP4(utils.ProcessFile(path), false, false)
 
 		if ConversionPriorityFolder != "" {
-			fmt.Println("walk: " + ConversionPriorityFolder)
 			return io.EOF
 		}
 	}

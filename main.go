@@ -14,6 +14,8 @@ func main() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", player.IndexPage)
+	router.HandleFunc("/favicon.ico", player.FavIcon) //TODO: ASK OLIVER
+
 	router.HandleFunc("/player", player.PlayerPage)
 	router.HandleFunc("/player/remote", player.RemotePage)
 	router.HandleFunc("/player/manage", player.ManagePage)

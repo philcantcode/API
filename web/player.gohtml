@@ -18,13 +18,13 @@
 
       <div class="box-body">
         {{range .Contents.SubFolders}}
-        <a href="?open={{ . }}" class="btn btn-primary" style="margin-top:5px;">{{ . }}</a>
+        <a href="?open={{ . }}" class="btn btn-primary">{{ . }}</a>
         {{end}}
       </div>
 
       <div class="box-body">
         {{range .Contents.Files}}
-        <a href="?play={{ .AbsPath }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Name }}{{ .Ext }}</a>
+        <a href="?play={{ .AbsPath }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg"><span class="fa fa-play-circle"></span> {{ .Name }}{{ .Ext }}</a>
         {{end}}
       </div>
 
@@ -40,7 +40,7 @@
   </div>
   <div class="box-body">
     {{range .Contents.RecentlyPlayed}}
-    <a href="?play={{ .File.AbsPath }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Title }}</a>
+    <a href="?play={{ .File.AbsPath }}&open={{ .File.Path }}" class="btn btn-lg" style="margin-top:5px;"><span class="fa fa-play-circle"></span> {{ .Title }}</a>
     {{end}}
   </div>
 </div>
@@ -72,12 +72,15 @@
 
   var player = document.getElementById("player");
   var id = "{{ .Contents.MediaInfo.ID }}";
-  var folder = "{{ .Contents.OpenParam }}";
   var rewindAmount = 10;
 
   $(window).load(function() 
   {
       $("#media-list").click();
+  });
+
+  $("#player").bind("ended", function() {
+     socket.send("control:skip")
   });
 
   openSocket(id);
@@ -86,6 +89,7 @@
   {
       socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/player?id=" + sid);
 
+      // Incoming messages back to the player
       socket.onmessage = function(msg) 
       {
           if (msg.data.length > 0)
@@ -95,9 +99,9 @@
 
               for (let i = 0; i < commands.length; i += 3) 
               {
-                  var type = commands[i];  // E.g., control
-                  var key = commands[i+1]; // E.g, pause/play
-                  var val = commands[i+2]; // E.g., 10
+                  var type = commands[i];  // e.g., control
+                  var key = commands[i+1]; // e.g, pause/play
+                  var val = commands[i+2]; // e.g., 10
 
                   switch(key) {
                       case "play":
@@ -141,8 +145,8 @@
       }
   }, 10000);
 
-  $(document).on("keydown", function (e) {
-      
+  $(document).on("keydown", function (e) 
+  {
       switch(e.key)
       { 
           case "ArrowLeft":

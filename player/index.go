@@ -47,3 +47,8 @@ func IndexPage(w http.ResponseWriter, r *http.Request) {
 	// Loads the template, 2nd param is the name in the .gohtml file at top
 	templates.ExecuteTemplate(w, "index", indexPage)
 }
+
+// FavIcon sends back icon image
+func FavIcon(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "/web/res/icons/favicon.ico")
+}

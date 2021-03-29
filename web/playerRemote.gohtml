@@ -20,8 +20,8 @@
         {{range .Contents.OpenMediaInfoList}}
           <tr>
             <th scope="row">{{ .ID }}</th>
-            <td>{{ .Title }}</td>
-            <td><a href="/player/remote?controller={{ .ID }}" class="btn btn-primary" style="margin-top:5px;">Open Remote</a></td>
+            <td>{{ .File.PrintName }}</td>
+            <td><a href="/player/remote?controller={{ .ID }}" class="btn btn-primary">Open Remote</a></td>
           </tr>
         {{end}}
         </tbody>
@@ -32,7 +32,7 @@
 {{ if .Contents.RemoteID }}
 <div class="box box-success">
   <div class="box-header with-border">
-    <h3 id="currently-watching" class="box-title">{{ .Contents.RemoteMediaInfo.Title }}</h3>
+    <h3 id="currently-watching" class="box-title">{{ .Contents.RemoteMediaInfo.File.PrintName }}</h3>
     <div class="box-tools pull-right">
       <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
     </div>
@@ -53,6 +53,7 @@
 
   socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/remote?id=" + id);
 
+  // Incoming Messages back to the remote
   socket.onmessage = function(msg) 
   {
       if (msg.data.length > 0)

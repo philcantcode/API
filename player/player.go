@@ -83,9 +83,11 @@ func getRecentlyWatched() []RecentlyPlayed {
 	mediaList := database.SelectMediaByTime(timeRange)
 	recent := make(map[string]database.MediaInfo)
 
+	// Loop over all the returned media & group by folder titles
 	for i := 0; i < len(mediaList); i++ {
 		hasCategory := false
 
+		// Loop over each token in the path
 		for j := 0; j < len(mediaList[i].File.PathTokens); j++ {
 			nthToken := mediaList[i].File.PathTokens[j]
 
@@ -122,9 +124,9 @@ func getRecentlyWatched() []RecentlyPlayed {
 	}
 
 	var recentFiles []RecentlyPlayed
-
 	var processed []string
 
+	// Reorder by date
 	for i := 0; i < len(recent); i++ {
 		highest := 0
 		highestStr := ""
@@ -139,6 +141,7 @@ func getRecentlyWatched() []RecentlyPlayed {
 		processed = append(processed, highestStr)
 	}
 
+	// Return
 	for i := 0; i < len(processed); i++ {
 		recentFiles = append(recentFiles, RecentlyPlayed{Title: processed[i], File: recent[processed[i]].File})
 	}
