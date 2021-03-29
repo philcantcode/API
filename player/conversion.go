@@ -123,7 +123,7 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	oldPath := file.Path + oldName
 
 	fmt.Printf("Converting to MP4 [%s] %s\n", file.Ext, info.File)
-	exec := exec.Command(ffmpegPath, "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", oldPath, "-c:v", videoCodec, "-c:a", audioCodec, newPath)
+	exec := exec.Command(ffmpegPath, "-threads", "1", "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", oldPath, "-c:v", videoCodec, "-c:a", audioCodec, newPath)
 
 	if stdout {
 		exec.Stdout = os.Stdout
