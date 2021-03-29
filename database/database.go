@@ -64,6 +64,12 @@ func init() {
 			" key TEXT UNIQUE, " +
 			" value TEXT)")
 	statement.Exec()
+
+	// Convert dates created in Java (System.currentTimeMillis()) which are
+	// 1000x larger than golang times to be compatible
+	statement, _ = con.Prepare(
+		"UPDATE playHistory SET date = (date / 1000) WHERE date > 1000000000000")
+	statement.Exec()
 }
 
 // FindOrCreateMedia searches for or creates a media

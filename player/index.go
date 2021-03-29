@@ -50,5 +50,5 @@ func IndexPage(w http.ResponseWriter, r *http.Request) {
 
 // FavIcon sends back icon image
 func FavIcon(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "/web/res/icons/favicon.ico")
+	http.ServeFile(w, r, "favicon.ico")
 }
