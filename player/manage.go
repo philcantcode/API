@@ -29,12 +29,12 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 		Drives         []string
 		SubFolders     []string
 		TrackedFolders []database.Directory
-		FfmpegStat     []ConversionHistory
+		FfmpegMetrics  []FfmpegMetrics
 	}{
 		Selected:       pathParam,
 		TrackedFolders: database.SelectDirectories(),
 		Drives:         utils.GetDrives(),
-		FfmpegStat:     FfmpegStat,
+		FfmpegMetrics:  FfmpegStat,
 	}
 
 	if pathParam != "" {

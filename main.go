@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 
@@ -11,6 +12,9 @@ import (
 
 // Handle incoming web requests and direct them to the folder
 func main() {
+	flag.IntVar(&player.NumFfmpegThreads, "ffthreads", 1, "Number of threads for FFMPEG Conversions")
+	flag.Parse()
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", player.IndexPage)

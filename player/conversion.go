@@ -23,20 +23,22 @@ const BROWSER_AUDIO = "libmp3lame"
 var ffmpegPath string
 var ffmpegZip string
 
-var FfmpegStat []ConversionHistory
+var FfmpegStat []FfmpegMetrics
 var ConversionPriorityFolder = ""
 
 var codecFilter *regexp.Regexp
 var audioFilter *regexp.Regexp
 
-type ConversionHistory struct {
+var NumFfmpegThreads int
+
+type FfmpegMetrics struct {
 	File      string
 	Status    string
 	StartTime time.Time
 	EndTime   time.Time
 }
 
-func (p *ConversionHistory) NowTime() string {
+func (p *FfmpegMetrics) NowTime() string {
 	if p.EndTime.IsZero() {
 		return fmt.Sprintf("%s", time.Since(p.StartTime).String())
 	}
@@ -86,6 +88,9 @@ func ConvertTrackedMediaDrives() {
 				}
 			}
 		}
+
+		// Recheck for new drives every n-seconds
+		time.Sleep(20 * time.Second)
 	}
 }
 
@@ -103,7 +108,9 @@ func convertWalkFunc(path string, info os.FileInfo, err error) error {
 	return nil
 }
 
-// ConvertToMP4 uses FFMPEG to convert to MP4
+// ConvertToMP4 uses FFMPEG to convert media on tracked
+// drives to MP4 by switching the container or changing
+// the codec
 func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	// Setup commands for file types
@@ -111,15 +118,15 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 		return
 	}
 
-	var info = ConversionHistory{StartTime: time.Now()}
-	info.File = file.Path + file.Name + file.Ext
+	var metrics = FfmpegMetrics{StartTime: time.Now()}
+	metrics.File = file.Path + file.Name + file.Ext
 
-	if !utils.IsLegalPath(info.File) {
+	if !utils.IsLegalPath(metrics.File) {
 		return
 	}
 
-	info.Status = "In Progress"
-	FfmpegStat = append(FfmpegStat, info)
+	metrics.Status = "In Progress"
+	FfmpegStat = append(FfmpegStat, metrics)
 	pos := len(FfmpegStat) - 1
 
 	newName := file.Name + ".mp4"
@@ -135,8 +142,9 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	var targVideo string
 	var targAudio string
 
-	fmt.Printf("Starting FFMPEG Conversion \n   > %s \n   > %s \n   > Codecs: %s / %s \n   > ", (file.Name + file.Ext), file.Path, codec, audio)
+	fmt.Printf("Starting FFMPEG (Threads: %d) \n   > %s \n   > %s \n   > Codecs: %s / %s \n   > ", NumFfmpegThreads, (file.Name + file.Ext), file.Path, codec, audio)
 
+	// Setup video codec conversion
 	switch codec {
 	case "h264":
 		fmt.Printf("Copying video container \n   > ")
@@ -149,10 +157,8 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 		targVideo = BROWSER_CODEC
 	}
 
+	// Setup audio codec conversion
 	switch audio {
-	case "mp3":
-		fmt.Printf("Copying audio container \n")
-		targAudio = "copy"
 	case "aac":
 		fmt.Printf("Copying audio container \n")
 		targAudio = "copy"
@@ -161,7 +167,8 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 		targAudio = BROWSER_AUDIO
 	}
 
-	var ffmpeg = exec.Command(ffmpegPath, "-threads", "1", "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", oldPath, "-c:v", targVideo, "-c:a", targAudio, newPath)
+	// Run the command on terminal
+	var ffmpeg = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", oldPath, "-c:v", targVideo, "-c:a", targAudio, newPath)
 
 	if stdout {
 		ffmpeg.Stdout = os.Stdout
@@ -173,7 +180,10 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	ffmpeg.Stderr = &errb
 
 	err := ffmpeg.Run()
+
+	// Calculate duration of conversion
 	FfmpegStat[pos].EndTime = time.Now()
+	duration := fmt.Sprintf("%s", FfmpegStat[pos].EndTime.Sub(FfmpegStat[pos].StartTime).String())
 
 	if err != nil {
 		fmt.Println("err:", errb.String())
@@ -184,20 +194,26 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	FfmpegStat[pos].Status = "Success!"
 
+	// If set to delete file, bin it
 	if remove {
-		os.Remove(info.File)
+		os.Remove(metrics.File)
 		return
 	}
 
+	// Move the old file to .ffmpeg
 	sep := string(filepath.Separator)
 	root := strings.Split(file.Path, sep)[0]
 	convPath := root + sep + ".ffmpeg"
+	fileConvPath := convPath + sep + file.Name + file.Ext
 
 	database.UpdateMediaName(oldName, newName)
 	database.UpdateMediaPath(oldPath, newPath)
 
 	os.Mkdir(convPath, 0755)
-	os.Rename(info.File, convPath+sep+file.Name+file.Ext)
+	os.Rename(metrics.File, fileConvPath)
+
+	// Update ffmpeg database
+	database.InsertFfmpeg(fileConvPath, newPath, codec+" / "+audio, targVideo+" / "+targAudio, duration)
 }
 
 func unzipFFMPEG() {
