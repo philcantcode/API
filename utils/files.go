@@ -66,11 +66,14 @@ func IsLegalPath(path string) bool {
 		return false
 	}
 
-	switch string(path[0]) {
-	case ".":
-		return false
-	case "$":
-		return false
+	// If any of the path tokens starts with illegal char
+	for i := 0; i < len(f.PathTokens); i++ {
+		switch string(f.PathTokens[i][0]) {
+		case ".":
+			return false
+		case "$":
+			return false
+		}
 	}
 
 	if len(f.Name) > 0 {

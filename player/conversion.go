@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -16,14 +17,17 @@ import (
 	"github.com/philcantcode/goApi/utils"
 )
 
-const videoCodec = "libx264"
-const audioCodec = "libmp3lame"
+const BROWSER_CODEC = "libx264"
+const BROWSER_AUDIO = "libmp3lame"
 
 var ffmpegPath string
 var ffmpegZip string
 
 var FfmpegStat []ConversionHistory
 var ConversionPriorityFolder = ""
+
+var codecFilter *regexp.Regexp
+var audioFilter *regexp.Regexp
 
 type ConversionHistory struct {
 	File      string
@@ -42,6 +46,8 @@ func (p *ConversionHistory) NowTime() string {
 
 func init() {
 	os := runtime.GOOS
+	codecFilter = regexp.MustCompile(`(?m)(Video: )([^\s]+)`)
+	audioFilter = regexp.MustCompile(`(?m)(Audio: )([^\s]+)`)
 
 	switch os {
 	case "windows":
@@ -122,19 +128,51 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	oldName := file.Name + file.Ext
 	oldPath := file.Path + oldName
 
-	fmt.Printf("Converting to MP4 [%s] %s\n", file.Ext, info.File)
-	exec := exec.Command(ffmpegPath, "-threads", "1", "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", oldPath, "-c:v", videoCodec, "-c:a", audioCodec, newPath)
+	probeExec, _ := exec.Command(ffmpegPath, "-i", oldPath).CombinedOutput()
+	codec := codecFilter.FindStringSubmatch(string(probeExec))[2]
+	audio := audioFilter.FindStringSubmatch(string(probeExec))[2]
 
-	if stdout { //
-		exec.Stdout = os.Stdout
-		exec.Stderr = os.Stderr
+	var targVideo string
+	var targAudio string
+
+	fmt.Printf("Starting FFMPEG Conversion \n   > %s \n   > %s \n   > Codecs: %s / %s \n   > ", (file.Name + file.Ext), file.Path, codec, audio)
+
+	switch codec {
+	case "h264":
+		fmt.Printf("Copying video container \n   > ")
+		targVideo = "copy"
+	case "hevc": // Full conversion
+		fmt.Printf("Converting video to %s \n   > ", BROWSER_CODEC)
+		targVideo = BROWSER_CODEC
+	default: // Full conversion
+		fmt.Printf("Default converting video to %s \n   > ", BROWSER_CODEC)
+		targVideo = BROWSER_CODEC
+	}
+
+	switch audio {
+	case "mp3":
+		fmt.Printf("Copying audio container \n")
+		targAudio = "copy"
+	case "aac":
+		fmt.Printf("Copying audio container \n")
+		targAudio = "copy"
+	default:
+		fmt.Printf("Default converting audio to %s \n", BROWSER_AUDIO)
+		targAudio = BROWSER_AUDIO
+	}
+
+	var ffmpeg = exec.Command(ffmpegPath, "-threads", "1", "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", oldPath, "-c:v", targVideo, "-c:a", targAudio, newPath)
+
+	if stdout {
+		ffmpeg.Stdout = os.Stdout
+		ffmpeg.Stderr = os.Stderr
 	}
 
 	var outb, errb bytes.Buffer
-	exec.Stdout = &outb
-	exec.Stderr = &errb
+	ffmpeg.Stdout = &outb
+	ffmpeg.Stderr = &errb
 
-	err := exec.Run()
+	err := ffmpeg.Run()
 	FfmpegStat[pos].EndTime = time.Now()
 
 	if err != nil {
