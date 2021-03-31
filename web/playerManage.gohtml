@@ -52,7 +52,7 @@
 
   <div class="box box-danger">
     <div class="box-header with-border">
-      <h3 class="box-title">FFMPEG File Conversion</h3>
+      <h3 class="box-title">Session FFMPEG File Conversion</h3>
       <div class="box-tools pull-right">
         <button href="" type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
       </div>
@@ -74,14 +74,14 @@
         <tbody>
       {{range .Contents.FfmpegMetrics}}
         <tr style="margin-bottom:5px; border-bottom:none;">
-          <td rowspan="2" style="word-break:break-all;">{{ .File }}</td>
+          <td rowspan="2" style="word-break:break-all;">{{ .File.AbsPath }}</td>
           <td>{{ .NowTime }}</td>
           <td>{{ .Status }}</td>
         </tr>
         <tr style="border-top:none;">
           <td style="border-top:none;" colspan="2">
-              <button data-path="{{ .File }}" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</button>   
-              <button data-path="{{ .File }}" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Revert</button>   
+              <a target="_blank" href="/player?play={{ .File.Path }}{{ .File.Name }}.mp4" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</a> 
+              <button data-path="{{ .File.Path }}{{ .File.Name }}.mp4" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Restore</button>   
           </td>
         </td>
         </tr>
@@ -89,7 +89,43 @@
     </tbody>
     </table> 
     </div>
-</div>
+  </div>
+
+  <div class="box box-danger">
+    <div class="box-header with-border">
+      <h3 class="box-title">FFMPEG File Conversion History</h3>
+      <div class="box-tools pull-right">
+        <button href="" type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+      </div>
+    </div>
+    
+    <div class="box-body">
+      <p>Past Conversions</p>
+      <table class="table table-sm">
+        <thead class="thead-dark">
+        <tr>
+          <th>Media</th>
+          <th>Actions</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+      {{range .Contents.FfmpegHistory}}
+        <tr style="margin-bottom:5px; border-bottom:none;">
+          <td style="word-break:break-all;">{{ .Mp4Path.AbsPath }}</td>
+          <td style="border-top:none;">
+            <a target="_blank" href="/player?play={{ .Mp4Path.AbsPath }}" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</a>   
+          </td>
+          <td style="border-top:none;">
+            <button data-path="{{ .Mp4Path.Path }}{{ .Mp4Path.Name }}.mp4" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Restore</button>   
+          </td>
+        </tr>
+        </tr>
+      {{end}}
+    </tbody>
+    </table> 
+    </div>
+  </div>
 
 <script type="text/javascript">
 $("#enable-fast-ffmpeg").on("click", function(e)
@@ -154,9 +190,7 @@ $(".play-ffmpeg").on("click", function(e)
           path: oldPath
         },
         success: function(response) {
-          if (response == "Not Found") {
-              alert("File Processing Not Complete Yet");
-          }
+          
         },
         error: function(xhr) {
          
@@ -175,14 +209,26 @@ $(".revert-ffmpeg").on("click", function(e)
           path: oldPath
         },
         success: function(response) {
-          if (response == "Not Found") {
+          switch (response) {
+            case "Not Found":
               alert("File Processing Not Complete Yet");
+              break;
+            case "Move Error":
+              alert("Error when moving file");
+              break;
+            case "Delete Error":
+              alert("Error when deleting file");
+              break;
           }
+
+          console.log("FFMPEG Response: " + response);
         },
         error: function(xhr) {
          
         }
     });
+
+    $(this).closest('tr').remove();
 });
 
 </script>

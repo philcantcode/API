@@ -24,7 +24,7 @@ func main() {
 	router.HandleFunc("/player/remote", player.RemotePage)
 	router.HandleFunc("/player/manage", player.ManagePage)
 
-	router.HandleFunc("/player/ffmpeg/revert", player.RevertFfmpeg)
+	router.HandleFunc("/player/ffmpeg/revert", player.RestoreFfmpeg)
 	router.HandleFunc("/player/ffmpeg/play", player.PlayFfmpeg)
 	router.HandleFunc("/player/ffmpeg/control", player.ControlFfmpeg)
 

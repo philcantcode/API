@@ -31,11 +31,13 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 		SubFolders     []string
 		TrackedFolders []database.Directory
 		FfmpegMetrics  []FfmpegMetrics
+		FfmpegHistory  []database.FfmpegHistory
 	}{
 		Selected:       pathParam,
 		TrackedFolders: database.SelectDirectories(),
 		Drives:         utils.GetDrives(),
 		FfmpegMetrics:  FfmpegStat,
+		FfmpegHistory:  database.SelectAllFfmpeg(),
 	}
 
 	if pathParam != "" {
@@ -60,28 +62,46 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// Revert the file conversion by looking up the archive file
+// RestoreFfmpeg reverts the file conversion by looking up the archive file
 // in the database, moving the archive file back to the folder
 // and deleting the original file
-func RevertFfmpeg(w http.ResponseWriter, r *http.Request) {
+func RestoreFfmpeg(w http.ResponseWriter, r *http.Request) {
 	// Original path, e.g., G:/folder/movie.avi
 	origPath := r.FormValue("path")
 
-	fmt.Println("[Reverting] " + origPath)
+	fmt.Println("[Restoring] " + origPath)
 
 	f := utils.ProcessFile(origPath)
-	archivedPath := database.SelectFfmpegArchivePath(f.Path + f.Name + ".mp4")
+	archivedPath := database.FindFfmpegHistory(f.AbsPath)
 
 	// Not found in database
 	// Probably because not finished processing yet
-	if archivedPath.AbsPath == "" {
+	if archivedPath.ArchivePath.AbsPath == "" {
 		w.Write([]byte("Not Found"))
 		return
 	}
 
 	// Moves archived file back & delete mp4 file
-	os.Rename(archivedPath.AbsPath, f.Path)
-	os.Remove(f.Path + f.Name + ".mp4")
+	restorationPath := f.Path + archivedPath.ArchivePath.Name + archivedPath.ArchivePath.Ext
+	fmt.Printf("Restoring (moving) %s to %s\n", archivedPath.ArchivePath.AbsPath, restorationPath)
+	err := os.Rename(archivedPath.ArchivePath.AbsPath, restorationPath)
+
+	if err != nil {
+		fmt.Println("Could Not Restore File (Move Err)")
+		w.Write([]byte("Move Error"))
+		return
+	}
+
+	// Remove the old .mp4 file
+	err = os.Remove(f.Path + f.Name + ".mp4")
+
+	if err != nil {
+		w.Write([]byte("Delete Error"))
+		return
+	}
+
+	// Remove entry from the DB
+	database.DeleteFfmpegEntry(archivedPath.ArchivePath.AbsPath)
 }
 
 func PlayFfmpeg(w http.ResponseWriter, r *http.Request) {

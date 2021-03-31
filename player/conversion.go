@@ -33,7 +33,7 @@ var NumFfmpegThreads int
 var DisableFfmpeg = false
 
 type FfmpegMetrics struct {
-	File      string
+	File      utils.File
 	Status    string
 	StartTime time.Time
 	EndTime   time.Time
@@ -130,9 +130,9 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	}
 
 	var metrics = FfmpegMetrics{StartTime: time.Now()}
-	metrics.File = file.Path + file.Name + file.Ext
+	metrics.File = file
 
-	if !utils.IsLegalPath(metrics.File) {
+	if !utils.IsLegalPath(metrics.File.AbsPath) {
 		return
 	}
 
@@ -207,7 +207,7 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	// If set to delete file, bin it
 	if remove {
-		os.Remove(metrics.File)
+		os.Remove(metrics.File.AbsPath)
 		return
 	}
 
@@ -219,7 +219,7 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	// Make folder for .ffmpeg if doesn't exist
 	os.Mkdir(archiveFolder, 0755)
-	os.Rename(metrics.File, archiveFile)
+	os.Rename(metrics.File.AbsPath, archiveFile)
 
 	// Update ffmpeg + playhistoy database
 	database.InsertFfmpeg(archiveFile, mp4Path, codec+" / "+audio, targVideo+" / "+targAudio, duration)

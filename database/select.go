@@ -102,20 +102,61 @@ func SelectMediaByTime(unixTime int64) []MediaInfo {
 	return mediaList
 }
 
-// SlectFfmpeg gets the history for an ffmpeg conversion
-func SelectFfmpegArchivePath(mp4Path string) utils.File {
+type FfmpegHistory struct {
+	ArchivePath utils.File
+	Mp4Path     utils.File
+	codecs      string
+	conversions string
+	Duration    string
+	Date        int
+}
 
+// FindFfmpegHistory gets the history for an ffmpeg conversion
+func FindFfmpegHistory(anyPath string) FfmpegHistory {
 	stmt, _ := con.Prepare(
-		"SELECT `archivePath`" +
-			"FROM `ffmpeg` WHERE `mp4Path` = ? LIMIT 1;")
+		"SELECT `archivePath`, `mp4Path`, `codecs`, `conversions`, `duration`, `date`" +
+			"FROM `ffmpeg` WHERE `archivePath` = ? OR `mp4Path` = ? LIMIT 1;")
 
-	rows, _ := stmt.Query(mp4Path)
-	var archivePath string
+	rows, _ := stmt.Query(anyPath, anyPath)
+	var h FfmpegHistory
 
 	for rows.Next() {
-		rows.Scan(&archivePath)
-		return utils.ProcessFile(archivePath)
+		var arcPath string
+		var mp4Path string
+
+		rows.Scan(&arcPath, &mp4Path, &h.codecs,
+			&h.conversions, &h.Duration, &h.Date)
+
+		h.ArchivePath = utils.ProcessFile(arcPath)
+		h.Mp4Path = utils.ProcessFile(mp4Path)
 	}
 
-	return utils.File{}
+	return h
+}
+
+// SelectAllFfmpeg gets all ffmpeg histories
+func SelectAllFfmpeg() []FfmpegHistory {
+	var histories []FfmpegHistory
+
+	stmt, _ := con.Prepare(
+		"SELECT `archivePath`, `mp4Path`, `codecs`, `conversions`, `duration`, `date`" +
+			"FROM `ffmpeg` ORDER BY `id` DESC;")
+
+	rows, _ := stmt.Query()
+
+	for rows.Next() {
+		h := FfmpegHistory{}
+		var arcPath string
+		var mp4Path string
+
+		rows.Scan(&arcPath, &mp4Path, &h.codecs,
+			&h.conversions, &h.Duration, &h.Date)
+
+		h.ArchivePath = utils.ProcessFile(arcPath)
+		h.Mp4Path = utils.ProcessFile(mp4Path)
+
+		histories = append(histories, h)
+	}
+
+	return histories
 }
