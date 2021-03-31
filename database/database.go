@@ -68,8 +68,8 @@ func init() {
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS ffmpeg " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" oldPath TEXT, " +
-			" newPath TEXT, " +
+			" archivePath TEXT, " +
+			" mp4Path TEXT, " +
 			" codecs TEXT, " +
 			" conversions TEXT, " +
 			" duration TEXT, " +

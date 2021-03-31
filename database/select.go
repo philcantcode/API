@@ -101,3 +101,21 @@ func SelectMediaByTime(unixTime int64) []MediaInfo {
 
 	return mediaList
 }
+
+// SlectFfmpeg gets the history for an ffmpeg conversion
+func SelectFfmpegArchivePath(mp4Path string) utils.File {
+
+	stmt, _ := con.Prepare(
+		"SELECT `archivePath`" +
+			"FROM `ffmpeg` WHERE `mp4Path` = ? LIMIT 1;")
+
+	rows, _ := stmt.Query(mp4Path)
+	var archivePath string
+
+	for rows.Next() {
+		rows.Scan(&archivePath)
+		return utils.ProcessFile(archivePath)
+	}
+
+	return utils.File{}
+}

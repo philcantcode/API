@@ -1,5 +1,8 @@
 {{define "playerManage"}}
 {{template "header" . }}
+    <style>
+    
+    </style>
     <div class="box box-success">
         <div class="box-header with-border">
           <h3 class="box-title">Choose a Drive</h3>
@@ -56,22 +59,132 @@
     </div>
     
     <div class="box-body">
-      <p>FFMPEG Session Conversion History</p>
-      <table style="width:100%">
+      <p>FFMPEG converts any movie files in an incompatible codec format to be playable in the browser</p>
+      <button id="enable-fast-ffmpeg" type="button" class="btn btn-success">Enable Fast Conversion</button> 
+      <button id="enable-slow-ffmpeg" type="button" class="btn btn-warning">Enable Slow Conversion</button>
+      <button id="disable-all-ffmpeg" type="button" class="btn btn-danger">Disable Conversion</button>  
+      <table class="table table-sm">
+        <thead class="thead-dark">
         <tr>
           <th>Media</th>
           <th>Duration</th>
           <th>Status</th>
         </tr>
+        </thead>
+        <tbody>
       {{range .Contents.FfmpegMetrics}}
-        <tr>
-          <td>{{ .File }}</td>
+        <tr style="margin-bottom:5px; border-bottom:none;">
+          <td rowspan="2" style="word-break:break-all;">{{ .File }}</td>
           <td>{{ .NowTime }}</td>
           <td>{{ .Status }}</td>
         </tr>
+        <tr style="border-top:none;">
+          <td style="border-top:none;" colspan="2">
+              <button data-path="{{ .File }}" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</button>   
+              <button data-path="{{ .File }}" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Revert</button>   
+          </td>
+        </td>
+        </tr>
       {{end}}
+    </tbody>
     </table> 
     </div>
 </div>
+
+<script type="text/javascript">
+$("#enable-fast-ffmpeg").on("click", function(e)
+{
+  $.ajax({
+      url: "/player/ffmpeg/control",
+      type: "get",
+      data: { 
+        type: "fast"
+      },
+      success: function(response) {
+
+      },
+      error: function(xhr) {
+        
+      }
+  });    
+});
+
+$("#enable-slow-ffmpeg").on("click", function(e)
+{
+  $.ajax({
+      url: "/player/ffmpeg/control",
+      type: "get",
+      data: { 
+        type: "slow"
+      },
+      success: function(response) {
+
+      },
+      error: function(xhr) {
+
+      }
+  });
+});
+
+$("#disable-all-ffmpeg").on("click", function(e)
+{
+  $.ajax({
+      url: "/player/ffmpeg/control",
+      type: "get",
+      data: { 
+        type: "disable"
+      },
+      success: function(response) {
+        
+      },
+      error: function(xhr) {
+        
+      }
+  });
+});
+
+$(".play-ffmpeg").on("click", function(e)
+{
+    var oldPath = $(this).attr("data-path");
+
+    $.ajax({
+        url: "/player/ffmpeg/play",
+        type: "get",
+        data: { 
+          path: oldPath
+        },
+        success: function(response) {
+          if (response == "Not Found") {
+              alert("File Processing Not Complete Yet");
+          }
+        },
+        error: function(xhr) {
+         
+        }
+    });
+});
+
+$(".revert-ffmpeg").on("click", function(e)
+{
+    var oldPath = $(this).attr("data-path");
+
+    $.ajax({
+        url: "/player/ffmpeg/revert",
+        type: "get",
+        data: { 
+          path: oldPath
+        },
+        success: function(response) {
+          if (response == "Not Found") {
+              alert("File Processing Not Complete Yet");
+          }
+        },
+        error: function(xhr) {
+         
+        }
+    });
+});
+
+</script>
 {{template "footer" . }}
 {{end}}

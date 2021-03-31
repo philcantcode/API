@@ -30,6 +30,7 @@ var codecFilter *regexp.Regexp
 var audioFilter *regexp.Regexp
 
 var NumFfmpegThreads int
+var DisableFfmpeg = false
 
 type FfmpegMetrics struct {
 	File      string
@@ -113,6 +114,16 @@ func convertWalkFunc(path string, info os.FileInfo, err error) error {
 // the codec
 func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
+	if DisableFfmpeg == true {
+		for {
+			time.Sleep(30 * time.Second)
+
+			if DisableFfmpeg == false {
+				break
+			}
+		}
+	}
+
 	// Setup commands for file types
 	if file.Ext != ".avi" && file.Ext != ".mkv" {
 		return
@@ -129,13 +140,13 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	FfmpegStat = append(FfmpegStat, metrics)
 	pos := len(FfmpegStat) - 1
 
-	newName := file.Name + ".mp4"
-	newPath := file.Path + newName
+	mp4Name := file.Name + ".mp4"
+	mp4Path := file.Path + mp4Name
 
-	oldName := file.Name + file.Ext
-	oldPath := file.Path + oldName
+	origName := file.Name + file.Ext
+	origPath := file.Path + origName
 
-	probeExec, _ := exec.Command(ffmpegPath, "-i", oldPath).CombinedOutput()
+	probeExec, _ := exec.Command(ffmpegPath, "-i", origPath).CombinedOutput()
 	codec := codecFilter.FindStringSubmatch(string(probeExec))[2]
 	audio := audioFilter.FindStringSubmatch(string(probeExec))[2]
 
@@ -168,7 +179,7 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	}
 
 	// Run the command on terminal
-	var ffmpeg = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", oldPath, "-c:v", targVideo, "-c:a", targAudio, newPath)
+	var ffmpeg = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", origPath, "-c:v", targVideo, "-c:a", targAudio, mp4Path)
 
 	if stdout {
 		ffmpeg.Stdout = os.Stdout
@@ -203,17 +214,17 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	// Move the old file to .ffmpeg
 	sep := string(filepath.Separator)
 	root := strings.Split(file.Path, sep)[0]
-	convPath := root + sep + ".ffmpeg"
-	fileConvPath := convPath + sep + file.Name + file.Ext
+	archiveFolder := root + sep + ".ffmpeg"
+	archiveFile := archiveFolder + sep + file.Name + file.Ext
 
-	database.UpdateMediaName(oldName, newName)
-	database.UpdateMediaPath(oldPath, newPath)
+	// Make folder for .ffmpeg if doesn't exist
+	os.Mkdir(archiveFolder, 0755)
+	os.Rename(metrics.File, archiveFile)
 
-	os.Mkdir(convPath, 0755)
-	os.Rename(metrics.File, fileConvPath)
-
-	// Update ffmpeg database
-	database.InsertFfmpeg(fileConvPath, newPath, codec+" / "+audio, targVideo+" / "+targAudio, duration)
+	// Update ffmpeg + playhistoy database
+	database.InsertFfmpeg(archiveFile, mp4Path, codec+" / "+audio, targVideo+" / "+targAudio, duration)
+	database.UpdateMediaName(origName, mp4Name)
+	database.UpdateMediaPath(origPath, mp4Path)
 }
 
 func unzipFFMPEG() {

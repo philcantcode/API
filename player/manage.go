@@ -3,6 +3,7 @@ package player
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/philcantcode/goApi/database"
 	"github.com/philcantcode/goApi/utils"
@@ -57,4 +58,56 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+// Revert the file conversion by looking up the archive file
+// in the database, moving the archive file back to the folder
+// and deleting the original file
+func RevertFfmpeg(w http.ResponseWriter, r *http.Request) {
+	// Original path, e.g., G:/folder/movie.avi
+	origPath := r.FormValue("path")
+
+	fmt.Println("[Reverting] " + origPath)
+
+	f := utils.ProcessFile(origPath)
+	archivedPath := database.SelectFfmpegArchivePath(f.Path + f.Name + ".mp4")
+
+	// Not found in database
+	// Probably because not finished processing yet
+	if archivedPath.AbsPath == "" {
+		w.Write([]byte("Not Found"))
+		return
+	}
+
+	// Moves archived file back & delete mp4 file
+	os.Rename(archivedPath.AbsPath, f.Path)
+	os.Remove(f.Path + f.Name + ".mp4")
+}
+
+func PlayFfmpeg(w http.ResponseWriter, r *http.Request) {
+	pathParam := r.FormValue("path")
+
+	fmt.Println("[Playing] " + pathParam)
+}
+
+// ControlFfmpeg handles web requests that stop the file
+// conversion or puts it into fast / slow mode (slow mode
+// is single threaded )
+func ControlFfmpeg(w http.ResponseWriter, r *http.Request) {
+	controlType := r.FormValue("type")
+
+	switch controlType {
+	case "fast":
+		DisableFfmpeg = false
+		NumFfmpegThreads = 0
+		fmt.Println("Switching FFMPEG to fast convert")
+	case "slow":
+		DisableFfmpeg = false
+		NumFfmpegThreads = 1
+		fmt.Println("Switching FFMPEG to slow convert")
+	case "disable":
+		DisableFfmpeg = true
+		NumFfmpegThreads = 0
+		fmt.Println("Disabling FFMPEG conversion")
+	}
 }
