@@ -16,13 +16,13 @@
           
           <div>
             {{range .Contents.Drives}}
-            <a href="?path={{ . }}" class="btn btn-success">{{ . }} Drive</a>
+            <a href="?path={{ .AbsPath }}" class="btn btn-success">{{ .AbsPath }} Drive</a>
             {{end}}
           </div>
 
           <div class="box-body">
             {{range .Contents.SubFolders}}
-            <a href="?path={{ . }}" class="btn btn-primary" style="margin-top:5px;">{{ . }}</a>
+            <a href="?path={{ .AbsPath }}" class="btn btn-primary" style="margin-top:5px;">{{ .AbsPath }}</a>
             {{end}}
           </div>
 

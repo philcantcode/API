@@ -27,15 +27,15 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Selected       string
-		Drives         []string
-		SubFolders     []string
-		TrackedFolders []database.Directory
+		Drives         []utils.File
+		SubFolders     []utils.File
+		TrackedFolders []utils.File
 		FfmpegMetrics  []FfmpegMetrics
 		FfmpegHistory  []database.FfmpegHistory
 	}{
 		Selected:       pathParam,
 		TrackedFolders: database.SelectDirectories(),
-		Drives:         utils.GetDrives(),
+		Drives:         utils.GetDefaultSystemDrives(),
 		FfmpegMetrics:  FfmpegStat,
 		FfmpegHistory:  database.SelectAllFfmpeg(),
 	}
@@ -115,6 +115,7 @@ func PlayFfmpeg(w http.ResponseWriter, r *http.Request) {
 // is single threaded )
 func ControlFfmpeg(w http.ResponseWriter, r *http.Request) {
 	controlType := r.FormValue("type")
+	prioritise := r.FormValue("prioritise")
 
 	switch controlType {
 	case "fast":
@@ -129,5 +130,8 @@ func ControlFfmpeg(w http.ResponseWriter, r *http.Request) {
 		DisableFfmpeg = true
 		NumFfmpegThreads = 0
 		fmt.Println("Disabling FFMPEG conversion")
+	case "prioritise":
+		fmt.Println("Prioritising " + prioritise)
+		database.InsertFfmpegPriority(prioritise)
 	}
 }

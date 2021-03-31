@@ -4,23 +4,17 @@ import (
 	"github.com/philcantcode/goApi/utils"
 )
 
-// Directory is a Top level directory
-type Directory struct {
-	ID   int
-	Path string
-}
-
 // SelectDirectories returns all the locations monitored on disk
-func SelectDirectories() []Directory {
+func SelectDirectories() []utils.File {
 	rows, _ := con.Query("SELECT * FROM watchFolders ORDER BY id DESC;")
-	var res []Directory
+	var res []utils.File
 
 	for rows.Next() {
 		var id int
 		var folder string
 
 		rows.Scan(&id, &folder)
-		res = append(res, Directory{ID: id, Path: folder})
+		res = append(res, utils.ProcessFile(folder))
 	}
 
 	return res
@@ -159,4 +153,24 @@ func SelectAllFfmpeg() []FfmpegHistory {
 	}
 
 	return histories
+}
+
+// SelectFfmpegPriority gets all ffmpeg proritiy folders
+func SelectFfmpegPriority() []utils.File {
+	var priorityFolders []utils.File
+
+	stmt, _ := con.Prepare(
+		"SELECT `path` FROM `ffmpegPriority` ORDER BY `id` DESC;")
+
+	rows, _ := stmt.Query()
+
+	for rows.Next() {
+		var path string
+
+		rows.Scan(&path)
+
+		priorityFolders = append(priorityFolders, utils.ProcessFile(path))
+	}
+
+	return priorityFolders
 }

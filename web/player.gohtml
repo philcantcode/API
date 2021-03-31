@@ -12,13 +12,13 @@
       
       <div>
         {{range .Contents.Directories}}
-        <a href="?open={{ . }}" class="btn btn-success">{{ . }}</a>
+        <a href="?open={{ .AbsPath }}" class="btn btn-success">{{ .AbsPath }}</a>
         {{end}}
       </div>
 
       <div class="box-body">
         {{range .Contents.SubFolders}}
-        <a href="?open={{ . }}" class="btn btn-primary">{{ . }}</a>
+        <a href="?open={{ .AbsPath }}" class="btn btn-primary">{{ .AbsPath }}</a>
         {{end}}
       </div>
 
@@ -28,6 +28,8 @@
         {{end}}
       </div>
 
+      <p></p>
+      <button id="ffmpeg-priority" class="btn btn-sm btn-warning pull-right">Prioritise FFMPEG Conversion</button>
     </div>
 </div>
 
@@ -192,8 +194,29 @@
         player.load();
         player.play();
   }
-  
   </script>
 {{end}}
+<script type="text/javascript">
+  $("#ffmpeg-priority").on("click", function(e)
+  {
+    $.ajax({
+        url: "/player/ffmpeg/control",
+        type: "get",
+        data: { 
+          type: "prioritise",
+          prioritise: "{{ .Contents.SafeOpenParam }}"
+        },
+        success: function(response) {
+         
+        },
+        error: function(xhr) {
+         
+        }
+    });
+
+    console.log("Priority");
+  });
+  </script>
+</script>
 {{template "footer" . }}
 {{end}}

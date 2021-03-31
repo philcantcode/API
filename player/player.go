@@ -34,11 +34,12 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		IP   string
 		Port string
 
-		OpenParam string
+		OpenParam     string
+		SafeOpenParam string
 
 		// File selector menu containing Directories > Folders > Files
-		Directories    []string
-		SubFolders     []string
+		Directories    []utils.File
+		SubFolders     []utils.File
 		Files          []utils.File
 		RecentlyPlayed []RecentlyPlayed
 
@@ -47,13 +48,10 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 	}{
 		IP:             utils.Host,
 		Port:           utils.Port,
+		Directories:    database.SelectDirectories(),
 		OpenParam:      openParam,
+		SafeOpenParam:  strings.ReplaceAll(openParam, "\\", "\\\\"),
 		RecentlyPlayed: getRecentlyWatched(),
-	}
-
-	// Find top level directories
-	for _, s := range database.SelectDirectories() {
-		data.Directories = append(data.Directories, s.Path)
 	}
 
 	if playParam != "" {
@@ -62,9 +60,7 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 
 	if openParam != "" {
 		// Find sub folders
-		for _, s := range utils.GetFolderLayer(openParam) {
-			data.SubFolders = append(data.SubFolders, s)
-		}
+		data.SubFolders = utils.GetFolderLayer(openParam)
 
 		// Find files in folder
 		for _, s := range utils.GetFilesLayer(openParam) {

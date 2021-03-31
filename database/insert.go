@@ -30,3 +30,10 @@ func InsertFfmpeg(archivePath string, mp4Path string, codecs string, conversions
 
 	statement.Exec(archivePath, mp4Path, codecs, conversions, duration, time.Now().Unix())
 }
+
+func InsertFfmpegPriority(path string) {
+	statement, _ := con.Prepare("INSERT INTO `ffmpegPriority`" +
+		"(path) VALUES (?)")
+
+	statement.Exec(path)
+}

@@ -73,8 +73,10 @@ func init() {
 // ConvertTrackedMediaDrives should be run on a new thread
 func ConvertTrackedMediaDrives() {
 	for {
-		drives := database.SelectDirectories()
+		drives := database.SelectFfmpegPriority()
+		drives = append(drives, database.SelectDirectories()...)
 
+		// There's a manual folder conversion priority set
 		if ConversionPriorityFolder != "" {
 			folder := ConversionPriorityFolder
 			ConversionPriorityFolder = ""
@@ -82,7 +84,7 @@ func ConvertTrackedMediaDrives() {
 			filepath.Walk(folder, convertWalkFunc)
 		} else {
 			for i := 0; i < len(drives); i++ {
-				filepath.Walk(drives[i].Path, convertWalkFunc)
+				filepath.Walk(drives[i].AbsPath, convertWalkFunc)
 
 				if ConversionPriorityFolder != "" {
 					break

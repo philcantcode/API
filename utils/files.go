@@ -27,13 +27,14 @@ type File struct {
 }
 
 // GetFolderLayer returns a list of folders
-func GetFolderLayer(path string) []string {
+func GetFolderLayer(path string) []File {
 	files, _ := ioutil.ReadDir(path)
-	var folders []string
+	var folders []File
 
 	for _, file := range files {
 		if file.IsDir() && IsLegalPath(file.Name()) {
-			folders = append(folders, filepath.Join(path, file.Name()))
+			path := filepath.Join(path, file.Name())
+			folders = append(folders, ProcessFile(path))
 		}
 	}
 
@@ -76,15 +77,6 @@ func IsLegalPath(path string) bool {
 		}
 	}
 
-	if len(f.Name) > 0 {
-		switch string(f.Name[0]) {
-		case ".":
-			return false
-		case "$":
-			return false
-		}
-	}
-
 	return true
 }
 
@@ -117,6 +109,8 @@ func ProcessFile(path string) File {
 			file.Name = fileName
 		}
 	} else { // Single file or folder
+		file.PathTokens = []string{path}
+
 		if strings.Contains(path, ".") {
 			fileTokens := strings.Split(path, ".")
 			fileExt := fileTokens[len(fileTokens)-1]
@@ -137,21 +131,23 @@ func ProcessFile(path string) File {
 	return file
 }
 
-// GetDrives returns a list of windows OS drives
-func GetDrives() (r []string) {
+// GetDefaultSystemDrives returns a list of windows + Mac OS drives
+func GetDefaultSystemDrives() []File {
+	var drives []File
+
 	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
 		f, err := os.Open(string(drive) + ":\\")
 		if err == nil {
-			r = append(r, string(drive)+":\\\\")
+			drives = append(drives, ProcessFile(string(drive)+":\\\\"))
 			f.Close()
 		}
 	}
 
 	usr, _ := user.Current()
-	r = append(r, usr.HomeDir)
-	r = append(r, "/Volumes")
+	drives = append(drives, ProcessFile(usr.HomeDir))
+	drives = append(drives, ProcessFile("/Volumes"))
 
-	return
+	return drives
 }
 
 // GetNextMatchingOrderedFile Takes in a folder and file, returns the next ordered file or returns "" if none found

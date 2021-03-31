@@ -76,6 +76,12 @@ func init() {
 			" date INTEGER NOT NULL)")
 	statement.Exec()
 
+	statement, _ = con.Prepare(
+		"CREATE TABLE IF NOT EXISTS ffmpegPriority " +
+			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
+			" path TEXT UNIQUE)")
+	statement.Exec()
+
 	// Convert dates created in Java (System.currentTimeMillis()) which are
 	// 1000x larger than golang times to be compatible
 	statement, _ = con.Prepare(
