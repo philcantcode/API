@@ -132,6 +132,11 @@ func ControlFfmpeg(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Disabling FFMPEG conversion")
 	case "prioritise":
 		fmt.Println("Prioritising " + prioritise)
+
+		if prioritise == "" {
+			break
+		}
+
 		database.InsertFfmpegPriority(prioritise)
 	}
 }

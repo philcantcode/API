@@ -62,9 +62,12 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		// Find sub folders
 		data.SubFolders = utils.GetFolderLayer(openParam)
 
-		// Find files in folder
+		// Find files in folder for file display menu
 		for _, s := range utils.GetFilesLayer(openParam) {
-			data.Files = append(data.Files, s)
+			// Hide subtitles from file display menu
+			if s.Ext != ".srt" {
+				data.Files = append(data.Files, s)
+			}
 			ConversionPriorityFolder = openParam
 		}
 	}

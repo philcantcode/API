@@ -28,8 +28,9 @@
         {{end}}
       </div>
 
-      <p></p>
+      {{ if .Contents.SafeOpenParam }}
       <button id="ffmpeg-priority" class="btn btn-sm btn-warning pull-right">Prioritise FFMPEG Conversion</button>
+      {{ end }}
     </div>
 </div>
 

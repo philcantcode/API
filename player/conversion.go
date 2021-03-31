@@ -197,6 +197,7 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	// Calculate duration of conversion
 	FfmpegStat[pos].EndTime = time.Now()
 	duration := fmt.Sprintf("%s", FfmpegStat[pos].EndTime.Sub(FfmpegStat[pos].StartTime).String())
+	fmt.Printf("   > Duration %s \n", duration)
 
 	if err != nil {
 		fmt.Println("err:", errb.String())
