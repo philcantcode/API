@@ -1,6 +1,7 @@
 package player
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -152,15 +153,21 @@ func getRecentlyWatched() []RecentlyPlayed {
 func LoadMedia(w http.ResponseWriter, r *http.Request) {
 	file := r.FormValue("file")
 	id, _ := strconv.Atoi(r.FormValue("id"))
-	var mediaInfo database.MediaInfo
 
-	if file != "" {
-		mediaInfo = database.SelectMedia(file)
-		http.ServeFile(w, r, file)
+	// Find by ID
+	if id != 0 {
+		mediaInfo, err := database.SelectMediaByID(id)
+
+		if err != nil {
+			log.Fatalf("Couldn't retrieve media by ID: %d\n", id)
+		}
+
+		http.ServeFile(w, r, mediaInfo.File.AbsPath)
 	}
 
-	if id != 0 {
-		mediaInfo = database.SelectMediaByID(id)
+	// find by file path
+	if file != "" {
+		mediaInfo := database.FindOrCreateMedia(file)
 		http.ServeFile(w, r, mediaInfo.File.AbsPath)
 	}
 }
@@ -172,7 +179,7 @@ func playbackUpdate(playTimeStr string, mediaID int) {
 }
 
 func findNextMedia(mediaID int) int {
-	prevMedia := database.SelectMediaByID(mediaID)
+	prevMedia, _ := database.SelectMediaByID(mediaID)
 	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(prevMedia.File.AbsPath))
 	nextID := database.FindOrCreateMedia(nextMedia).ID
 

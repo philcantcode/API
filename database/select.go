@@ -1,6 +1,8 @@
 package database
 
 import (
+	"errors"
+
 	"github.com/philcantcode/goApi/utils"
 )
 
@@ -29,46 +31,106 @@ type MediaInfo struct {
 	File     utils.File
 }
 
-// SelectMedia finds the playback in the database
-func SelectMedia(path string) MediaInfo {
+// SelectMediaByPath finds the playback in the database
+func SelectMediaByPath(path string) (MediaInfo, error) {
 	stmt, _ := con.Prepare(
-		"SELECT `id`, `hash`, `path`, `playTime`, `date`" +
+		"SELECT `id`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `path` = ? LIMIT 1;")
 
 	media := MediaInfo{}
 	rows, _ := stmt.Query(path)
+	err := errors.New("Media not found by path in playHistory")
 
 	for rows.Next() {
-		var dbPath string
+		var mediaPath string
 
-		rows.Scan(&media.ID, &media.Hash,
-			&dbPath, &media.PlayTime, &media.Date)
+		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
 
-		media.File = utils.ProcessFile(dbPath)
+		media.File = utils.ProcessFile(mediaPath)
+		err = nil
 	}
 
-	return media
+	return media, err
+}
+
+// SelectAllMedia finds the playback in the database
+func SelectAllMedia() []MediaInfo {
+	stmt, _ := con.Prepare(
+		"SELECT `id`, `hash`, `path`, `playTime`, `date` FROM `playHistory` ORDER BY `id` ASC;")
+
+	var mediaList []MediaInfo
+	rows, _ := stmt.Query()
+
+	for rows.Next() {
+		media := MediaInfo{}
+		var mediaPath string
+
+		rows.Scan(&media.ID, &media.Hash, &mediaPath, &media.PlayTime, &media.Date)
+
+		media.File = utils.ProcessFile(mediaPath)
+		mediaList = append(mediaList, media)
+	}
+
+	return mediaList
+}
+
+// SelectMediaHash finds the hash for a playHistory path
+func SelectMediaHash(path string) string {
+	stmt, _ := con.Prepare(
+		"SELECT `hash` FROM `playHistory` WHERE `path` = ? LIMIT 1;")
+
+	rows, _ := stmt.Query(path)
+	var hash string
+
+	for rows.Next() {
+		rows.Scan(&hash)
+	}
+
+	return hash
 }
 
 // SelectMediaByID finds the playback in the database
-func SelectMediaByID(id int) MediaInfo {
+func SelectMediaByID(id int) (MediaInfo, error) {
 	stmt, _ := con.Prepare(
-		"SELECT `id`, `hash`, `path`, `playTime`, `date`" +
+		"SELECT `id`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `id` = ? LIMIT 1;")
 
 	media := MediaInfo{}
 	rows, _ := stmt.Query(id)
+	err := errors.New("Media not found by ID in playHistory")
 
 	for rows.Next() {
-		var dbPath string
+		var mediaPath string
 
-		rows.Scan(&media.ID, &media.Hash,
-			&dbPath, &media.PlayTime, &media.Date)
+		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
 
-		media.File = utils.ProcessFile(dbPath)
+		media.File = utils.ProcessFile(mediaPath)
+		err = nil
 	}
 
-	return media
+	return media, err
+}
+
+// SelectMediaByHash finds the playback in the database given a hash or alt hash
+func SelectMediaByHash(hash string) (MediaInfo, error) {
+	stmt, _ := con.Prepare(
+		"SELECT `id`, `path`, `playTime`, `date`" +
+			"FROM `playHistory` WHERE `hash` = ? OR `altHash` = ? LIMIT 1;")
+
+	media := MediaInfo{}
+	rows, _ := stmt.Query(hash, hash)
+	err := errors.New("Media not found by hash in playHistory")
+
+	for rows.Next() {
+		var mediaPath string
+
+		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
+
+		media.File = utils.ProcessFile(mediaPath)
+		err = nil
+	}
+
+	return media, err
 }
 
 // SelectMediaByTime finds the playback in the from a given timepoint
@@ -77,19 +139,18 @@ func SelectMediaByTime(unixTime int64) []MediaInfo {
 	var mediaList []MediaInfo
 
 	stmt, _ := con.Prepare(
-		"SELECT `id`, `hash`, `path`, `playTime`, `date`" +
+		"SELECT `id`, `path`, `playTime`, `date`" +
 			"FROM `playHistory` WHERE `date` >= ?;")
 
 	rows, _ := stmt.Query(unixTime)
 
 	for rows.Next() {
 		media := MediaInfo{}
-		var dbPath string
+		var mediaPath string
 
-		rows.Scan(&media.ID, &media.Hash,
-			&dbPath, &media.PlayTime, &media.Date)
+		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
 
-		media.File = utils.ProcessFile(dbPath)
+		media.File = utils.ProcessFile(mediaPath)
 		mediaList = append(mediaList, media)
 	}
 

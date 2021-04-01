@@ -68,6 +68,8 @@ func init() {
 	default:
 		fmt.Printf("%s.\n", os)
 	}
+
+	go generateExistingMediaHashes()
 }
 
 // ConvertTrackedMediaDrives should be run on a new thread
@@ -101,7 +103,7 @@ func convertWalkFunc(path string, info os.FileInfo, err error) error {
 	_, fErr := os.Stat(path)
 
 	if fErr == nil && !info.IsDir() {
-		ConvertToMP4(utils.ProcessFile(path), false, false)
+		ConvertToMP4(path, false, false)
 
 		if ConversionPriorityFolder != "" {
 			return io.EOF
@@ -114,7 +116,11 @@ func convertWalkFunc(path string, info os.FileInfo, err error) error {
 // ConvertToMP4 uses FFMPEG to convert media on tracked
 // drives to MP4 by switching the container or changing
 // the codec
-func ConvertToMP4(file utils.File, stdout bool, remove bool) {
+func ConvertToMP4(path string, stdout bool, remove bool) {
+	// Ensure the file exists in the playHistory
+	targFile := database.FindOrCreateMedia(path).File
+	mp4File := utils.ProcessFile(targFile.Path + targFile.Name + ".mp4")
+	hash := database.SelectMediaHash(path)
 
 	if DisableFfmpeg == true {
 		for {
@@ -126,36 +132,38 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 		}
 	}
 
-	// Setup commands for file types
-	if file.Ext != ".avi" && file.Ext != ".mkv" {
+	// Initial checks for the files
+	if targFile.Ext != ".avi" && targFile.Ext != ".mkv" {
 		return
 	}
 
+	if !utils.IsLegalPath(targFile.AbsPath) {
+		return
+	}
+
+	// Metrics struct for tracking conversion progress
 	var metrics = FfmpegMetrics{StartTime: time.Now()}
-	metrics.File = file
-
-	if !utils.IsLegalPath(metrics.File.AbsPath) {
-		return
-	}
+	metrics.File = targFile
 
 	metrics.Status = "In Progress"
 	FfmpegStat = append(FfmpegStat, metrics)
 	pos := len(FfmpegStat) - 1
 
-	mp4Name := file.Name + ".mp4"
-	mp4Path := file.Path + mp4Name
-
-	origName := file.Name + file.Ext
-	origPath := file.Path + origName
-
-	probeExec, _ := exec.Command(ffmpegPath, "-i", origPath).CombinedOutput()
+	probeExec, _ := exec.Command(ffmpegPath, "-i", targFile.AbsPath).CombinedOutput()
 	codec := codecFilter.FindStringSubmatch(string(probeExec))[2]
 	audio := audioFilter.FindStringSubmatch(string(probeExec))[2]
 
 	var targVideo string
 	var targAudio string
 
-	fmt.Printf("Starting FFMPEG (Threads: %d) \n   > %s \n   > %s \n   > Codecs: %s / %s \n   > ", NumFfmpegThreads, (file.Name + file.Ext), file.Path, codec, audio)
+	fmt.Printf("Starting FFMPEG (Threads: %d) \n   > %s \n   > %s \n   > Codecs: %s / %s \n   > ", NumFfmpegThreads, (targFile.Name + targFile.Ext), targFile.Path, codec, audio)
+
+	// If the hash hasn't been created, generate it
+	if len(hash) == 0 {
+		fmt.Printf("Generating MD5 Hash\n   > ")
+		hash, _ = utils.Hash(path)
+		database.UpdateMediaHash(path, hash)
+	}
 
 	// Setup video codec conversion
 	switch codec {
@@ -181,7 +189,7 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 	}
 
 	// Run the command on terminal
-	var ffmpeg = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", origPath, "-c:v", targVideo, "-c:a", targAudio, mp4Path)
+	var ffmpeg = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", targFile.AbsPath, "-c:v", targVideo, "-c:a", targAudio, mp4File.AbsPath)
 
 	if stdout {
 		ffmpeg.Stdout = os.Stdout
@@ -216,18 +224,19 @@ func ConvertToMP4(file utils.File, stdout bool, remove bool) {
 
 	// Move the old file to .ffmpeg
 	sep := string(filepath.Separator)
-	root := strings.Split(file.Path, sep)[0]
+	root := strings.Split(targFile.Path, sep)[0]
 	archiveFolder := root + sep + ".ffmpeg"
-	archiveFile := archiveFolder + sep + file.Name + file.Ext
+	archiveFile := archiveFolder + sep + targFile.Name + targFile.Ext
 
 	// Make folder for .ffmpeg if doesn't exist
 	os.Mkdir(archiveFolder, 0755)
 	os.Rename(metrics.File.AbsPath, archiveFile)
+	mp4Hash, _ := utils.Hash(mp4File.AbsPath)
 
-	// Update ffmpeg + playhistoy database
-	database.InsertFfmpeg(archiveFile, mp4Path, codec+" / "+audio, targVideo+" / "+targAudio, duration)
-	database.UpdateMediaName(origName, mp4Name)
-	database.UpdateMediaPath(origPath, mp4Path)
+	// Update ffmpeg + playhistoy database and generate altHash for new MP4 file
+	database.InsertFfmpeg(archiveFile, mp4File.AbsPath, codec+" / "+audio, targVideo+" / "+targAudio, duration)
+	database.UpdateMediaPathByHash(mp4File.AbsPath, hash)
+	database.UpdateMediaAltHash(mp4File.AbsPath, mp4Hash)
 }
 
 func unzipFFMPEG() {
@@ -244,5 +253,37 @@ func unzipFFMPEG() {
 			log.Fatal(err)
 			return
 		}
+	}
+}
+
+// This function loops over all of the media items in the playHistory
+// and attempts to generate any missing hashes
+// Should be called in new background thread
+func generateExistingMediaHashes() {
+	print := true
+
+	for {
+		mediaList := database.SelectAllMedia()
+		counter := 0
+
+		for _, media := range mediaList {
+			if media.Hash == "" {
+				hash, err := utils.Hash(media.File.AbsPath)
+
+				if err == nil {
+					database.UpdateMediaHash(media.File.AbsPath, hash)
+				}
+			}
+
+			counter++
+
+			if counter%100 == 0 && print {
+				fmt.Printf("Background Hasher: %d / %d\n", counter, len(mediaList))
+			}
+
+		}
+
+		time.Sleep(120 * time.Second)
+		print = false
 	}
 }

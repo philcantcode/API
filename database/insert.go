@@ -13,15 +13,14 @@ func InsertFolder(folder string) {
 	statement.Exec(folder)
 }
 
-func InsertMedia(path string) {
+func InsertMedia(file utils.File) int {
 	statement, _ := con.Prepare("INSERT INTO `playHistory`" +
-		"(name, hash, path, playTime, date) VALUES (?, ?, ?, ?, ?)")
+		"(path, hash, altHash, playTime, date) VALUES (?, ?, ?, ?, ?)")
 
-	f := utils.ProcessFile(path)
-	name := f.Name + f.Ext
-	path = f.Path + name
+	res, _ := statement.Exec(file.AbsPath, "", "", 0, time.Now().Unix())
+	insertID, _ := res.LastInsertId()
 
-	statement.Exec(name, "", path, 0, time.Now().Unix())
+	return int(insertID)
 }
 
 func InsertFfmpeg(archivePath string, mp4Path string, codecs string, conversions string, duration string) {

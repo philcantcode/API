@@ -3,9 +3,11 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"runtime"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/philcantcode/goApi/utils"
 )
 
 var con *sql.DB
@@ -37,8 +39,8 @@ func init() {
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS playHistory " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" name TEXT NOT NULL, " +
-			" hash TEXT NOT NULL, " +
+			" hash TEXT DEFAULT '', " +
+			" altHash TEXT DEFAULT '', " +
 			" path TEXT NOT NULL, " +
 			" playTime TEXT, " +
 			" date INTEGER NOT NULL)")
@@ -91,13 +93,32 @@ func init() {
 
 // FindOrCreateMedia searches for or creates a media
 func FindOrCreateMedia(path string) MediaInfo {
-	media := SelectMedia(path)
 
-	// Doesn't exist in DB
-	if media.ID == 0 {
-		InsertMedia(path)
-		media = SelectMedia(path)
+	// Try find by path first
+	mediaInfo, err := SelectMediaByPath(path)
+
+	if err == nil {
+		return mediaInfo
 	}
 
-	return media
+	// Try find by computing hash
+	fmt.Println("Computing File Hash, Please Wait")
+	hash, _ := utils.Hash(path)
+	mediaInfo, err = SelectMediaByHash(hash)
+
+	// Hash Found
+	if err == nil {
+		UpdateMediaPathByHash(mediaInfo.File.AbsPath, hash)
+		return mediaInfo
+	}
+
+	// Doesn't exist in DB
+	id := InsertMedia(utils.ProcessFile(path))
+	mediaInfo, err = SelectMediaByID(id)
+
+	if err != nil {
+		log.Fatal("Couldn't find or create media in playHistory")
+	}
+
+	return mediaInfo
 }

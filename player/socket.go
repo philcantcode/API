@@ -46,8 +46,9 @@ func SocketSetup(w http.ResponseWriter, r *http.Request) {
 	var ch channel
 
 	if !exists {
+		media, _ := database.SelectMediaByID(mID)
 		ch = channel{
-			mediaInfo: database.SelectMediaByID(mID),
+			mediaInfo: media,
 			playCH:    make(chan command, 10),
 			remoteCH:  make(chan command, 10),
 		}
@@ -196,7 +197,7 @@ func controls(cmd command, id int) {
 		channels[nextID] = channels[id]
 		delete(channels, id)
 
-		media := database.SelectMediaByID(nextID)
+		media, _ := database.SelectMediaByID(nextID)
 		ret := fmt.Sprintf("update:media-info:%d;%s;%s;%s;%s;%d;%d", id, media.File.Name, media.Hash, media.File.AbsPath, media.File.Path, media.PlayTime, media.Date)
 
 		sendToPlayers(ret, nextID)

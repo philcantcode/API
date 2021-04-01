@@ -33,11 +33,12 @@ func RemotePage(w http.ResponseWriter, r *http.Request) {
 		RemoteID        int
 		RemoteMediaInfo database.MediaInfo
 	}{
-		IP:              utils.Host,
-		Port:            utils.Port,
-		RemoteID:        remoteID,
-		RemoteMediaInfo: database.SelectMediaByID(remoteID),
+		IP:       utils.Host,
+		Port:     utils.Port,
+		RemoteID: remoteID,
 	}
+
+	data.RemoteMediaInfo, _ = database.SelectMediaByID(remoteID)
 
 	for _, channel := range channels {
 		data.OpenMediaInfoList = append(data.OpenMediaInfoList, channel.mediaInfo)
