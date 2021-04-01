@@ -31,11 +31,16 @@ func init() {
 
 	con, _ = sql.Open("sqlite3", dbLoc)
 
+	// Top level directories to keep track of
 	statement, _ := con.Prepare(
 		"CREATE TABLE IF NOT EXISTS watchFolders" +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT UNIQUE)")
 	statement.Exec()
 
+	// The playhistory for media files
+	// The hash is the fist computed hash for the file, the alt hash is used if a
+	// conversion takes place resulting in an old hash and a new hash for the two
+	// versions of the file
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS playHistory " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -46,6 +51,7 @@ func init() {
 			" date INTEGER NOT NULL)")
 	statement.Exec()
 
+	// Depricated database only used by Java
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS folderMeta " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -53,6 +59,7 @@ func init() {
 			" type INTEGER)")
 	statement.Exec()
 
+	// Depricated database only used by Java
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS fileTrack " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -60,6 +67,7 @@ func init() {
 			" dateAdded TEXT NOT NULL)")
 	statement.Exec()
 
+	// Depricated database only used by Java
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS settings " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -67,6 +75,7 @@ func init() {
 			" value TEXT)")
 	statement.Exec()
 
+	// Keeps track of file conversions using FFMPEG
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS ffmpeg " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -78,6 +87,7 @@ func init() {
 			" date INTEGER NOT NULL)")
 	statement.Exec()
 
+	// Folders the user has manually marked has high priority for conversion
 	statement, _ = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS ffmpegPriority " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -91,7 +101,7 @@ func init() {
 	statement.Exec()
 }
 
-// FindOrCreateMedia searches for or creates a media
+// FindOrCreateMedia searches for or creates a media by a given path
 func FindOrCreateMedia(path string) MediaInfo {
 
 	// Try find by path first
@@ -102,7 +112,7 @@ func FindOrCreateMedia(path string) MediaInfo {
 	}
 
 	// Try find by computing hash
-	fmt.Println("Computing File Hash, Please Wait")
+	fmt.Println("[FindOrCreateMedia] Computing File Hash, Please Wait")
 	hash, _ := utils.Hash(path)
 	mediaInfo, err = SelectMediaByHash(hash)
 

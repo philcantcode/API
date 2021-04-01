@@ -68,8 +68,8 @@
 
 <script type="text/javascript">
 
-  var url = "http://{{ .Contents.IP }}:{{ .Contents.Port }}";
   var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
+  var url = "http://" + wsurl;
 
   var socket;
 
