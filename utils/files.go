@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -69,6 +70,7 @@ func IsLegalPath(path string) bool {
 
 	// If any of the path tokens starts with illegal char
 	for i := 0; i < len(f.PathTokens); i++ {
+		fmt.Printf("::: %s\n", f.AbsPath)
 		switch string(f.PathTokens[i][0]) {
 		case ".":
 			return false

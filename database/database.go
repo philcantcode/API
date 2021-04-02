@@ -18,9 +18,9 @@ func init() {
 
 	switch os {
 	case "windows":
-		dbLoc = "E:/Google Drive/elements.db"
+		dbLoc = "E:/Google Drive/MediaPlayer.db"
 	case "darwin":
-		dbLoc = "/Users/Phil/Google Drive/elements.db"
+		dbLoc = "/Users/Phil/Google Drive/MediaPlayer.db"
 	case "linux":
 		fmt.Println("OS Not Supported")
 	default:
@@ -33,7 +33,7 @@ func init() {
 
 	// Top level directories to keep track of
 	statement, _ := con.Prepare(
-		"CREATE TABLE IF NOT EXISTS watchFolders" +
+		"CREATE TABLE IF NOT EXISTS RootDirectories" +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT UNIQUE)")
 	statement.Exec()
 
@@ -42,13 +42,10 @@ func init() {
 	// conversion takes place resulting in an old hash and a new hash for the two
 	// versions of the file
 	statement, _ = con.Prepare(
-		"CREATE TABLE IF NOT EXISTS playHistory " +
+		"CREATE TABLE IF NOT EXISTS MediaPlayback " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" hash TEXT DEFAULT '', " +
-			" altHash TEXT DEFAULT '', " +
-			" path TEXT NOT NULL, " +
-			" playTime TEXT, " +
-			" date INTEGER NOT NULL)")
+			" playtime TEXT, " +
+			" modified INTEGER)")
 	statement.Exec()
 
 	// Depricated database only used by Java
@@ -103,7 +100,6 @@ func init() {
 
 // FindOrCreateMedia searches for or creates a media by a given path
 func FindOrCreateMedia(path string) MediaInfo {
-
 	// Try find by path first
 	mediaInfo, err := SelectMediaByPath(path)
 

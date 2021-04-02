@@ -154,7 +154,7 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 	file := r.FormValue("file")
 	id, _ := strconv.Atoi(r.FormValue("id"))
 
-	// Find by ID
+	// Find by ID - the ID is guarenteed to already exist
 	if id != 0 {
 		mediaInfo, err := database.SelectMediaByID(id)
 
