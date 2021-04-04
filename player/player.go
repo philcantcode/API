@@ -1,7 +1,6 @@
 package player
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -32,11 +31,15 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 	playParam := r.FormValue("play")
 
 	data := struct {
-		IP   string
-		Port string
+		IP       string
+		Port     string
+		DeviceID string
 
-		OpenParam     string
+		OpenParam utils.File
+		PlayParam utils.File
+
 		SafeOpenParam string
+		SafePlayParam string
 
 		// File selector menu containing Directories > Folders > Files
 		Directories    []utils.File
@@ -45,21 +48,18 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		RecentlyPlayed []RecentlyPlayed
 
 		// Media that is being played
-		MediaInfo database.MediaInfo
+		Playback database.Playback
 	}{
 		IP:             utils.Host,
 		Port:           utils.Port,
-		Directories:    database.SelectDirectories(),
-		OpenParam:      openParam,
-		SafeOpenParam:  strings.ReplaceAll(openParam, "\\", "\\\\"),
+		Directories:    database.SelectRootDirectories(),
 		RecentlyPlayed: getRecentlyWatched(),
-	}
-
-	if playParam != "" {
-		data.MediaInfo = database.FindOrCreateMedia(playParam)
+		DeviceID:       utils.RandomString(8),
 	}
 
 	if openParam != "" {
+		data.OpenParam = utils.ProcessFile(openParam)
+		data.SafeOpenParam = strings.ReplaceAll(openParam, "\\", "\\\\")
 		// Find sub folders
 		data.SubFolders = utils.GetFolderLayer(openParam)
 
@@ -69,55 +69,80 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 			if s.Ext != ".srt" {
 				data.Files = append(data.Files, s)
 			}
+
 			ConversionPriorityFolder = openParam
 		}
+	}
+
+	if playParam != "" {
+		data.PlayParam = utils.ProcessFile(playParam)
+		data.SafePlayParam = strings.ReplaceAll(playParam, "\\", "\\\\")
+		data.Playback = database.FindOrCreatePlayback(playParam)
 	}
 
 	playerPage.Contents = data
 	templates.ExecuteTemplate(w, "player", playerPage)
 }
 
+// Returns the media last changed by the database (e.g., played)
 func getRecentlyWatched() []RecentlyPlayed {
 	// Get a past time period -n days
 	timeRange := time.Now().AddDate(0, 0, -10).Unix()
-	mediaList := database.SelectMediaByTime(timeRange)
-	recent := make(map[string]database.MediaInfo)
+	recentPlaybackList := database.SelectPlaybacks_ByTime(timeRange)
+	recent := make(map[string]database.Playback)
+	locations := make(map[string]utils.File)
 
-	// Loop over all the returned media & group by folder titles
-	for i := 0; i < len(mediaList); i++ {
-		hasCategory := false
+	for _, playback := range recentPlaybackList {
+		isIndexedByCategory := false
 
-		// Loop over each token in the path
-		for j := 0; j < len(mediaList[i].File.PathTokens); j++ {
-			nthToken := mediaList[i].File.PathTokens[j]
+		// For each utils.File location
+		for _, location := range playback.Locations {
+			if location.Exists {
+				// Loop over each token in the path
+				for i := 0; i < len(location.PathTokens); i++ {
+					nthToken := location.PathTokens[i]
 
-			// Handles media ordered by category
-			if strings.Contains(nthToken, "Category - ") {
-				nextToken := mediaList[i].File.PathTokens[j+1]
-				media, found := recent[nextToken]
+					// Handles media ordered by category
+					if strings.Contains(nthToken, "Category - ") && len(location.PathTokens) > i+1 {
+						seriesName := location.PathTokens[i+1] // Token after category
+						_, found := recent[seriesName]         // Already catalogued
 
-				if !found {
-					recent[nextToken] = mediaList[i]
-				} else {
-					if media.Date >= recent[nextToken].Date {
-						recent[nextToken] = mediaList[i]
+						if !found { // Add to recent list
+							recent[seriesName] = playback
+							locations[seriesName] = location
+							isIndexedByCategory = true
+						} else { // Overwrite if bigger
+							if playback.Modified >= recent[seriesName].Modified {
+								recent[seriesName] = playback
+								locations[seriesName] = location
+								isIndexedByCategory = true
+							}
+						}
 					}
 				}
 
-				hasCategory = true
-			}
-		}
+				// If the media isn't ordered by a category
+				if !isIndexedByCategory {
+					folderName := location.PathTokens[len(location.PathTokens)-2]
 
-		// If the media isn't ordered by a category
-		if !hasCategory {
-			folderName := mediaList[i].File.PathTokens[1]
-			_, titleFound := recent[folderName]
+					for _, dir := range database.SelectRootDirectories() {
 
-			if !titleFound {
-				recent[folderName] = mediaList[i]
-			} else {
-				if mediaList[i].Date > recent[folderName].Date {
-					recent[folderName] = mediaList[i]
+						if dir.Path == location.Path {
+							folderName = location.PathTokens[len(location.PathTokens)-1] // File name
+							break
+						}
+					}
+					_, titleFound := recent[folderName]
+
+					if !titleFound {
+						recent[folderName] = playback
+						locations[folderName] = location
+					} else {
+						if playback.Modified > recent[folderName].Modified {
+							recent[folderName] = playback
+							locations[folderName] = location
+						}
+					}
 				}
 			}
 		}
@@ -132,8 +157,8 @@ func getRecentlyWatched() []RecentlyPlayed {
 		highestStr := ""
 
 		for title, value := range recent {
-			if value.Date >= highest && !utils.Contains(title, processed) {
-				highest = value.Date
+			if value.Modified >= highest && !utils.Contains(title, processed) {
+				highest = value.Modified
 				highestStr = title
 			}
 		}
@@ -143,7 +168,7 @@ func getRecentlyWatched() []RecentlyPlayed {
 
 	// Return
 	for i := 0; i < len(processed); i++ {
-		recentFiles = append(recentFiles, RecentlyPlayed{Title: processed[i], File: recent[processed[i]].File})
+		recentFiles = append(recentFiles, RecentlyPlayed{Title: processed[i], File: locations[processed[i]]})
 	}
 
 	return recentFiles
@@ -151,37 +176,25 @@ func getRecentlyWatched() []RecentlyPlayed {
 
 // LoadMedia takes a file or ID GET param, then loads the media
 func LoadMedia(w http.ResponseWriter, r *http.Request) {
-	file := r.FormValue("file")
-	id, _ := strconv.Atoi(r.FormValue("id"))
+	id, err := strconv.Atoi(r.FormValue("id"))
+	utils.Error("Couldn't convert LoadMedia ID to integer", err)
 
 	// Find by ID - the ID is guarenteed to already exist
-	if id != 0 {
-		mediaInfo, err := database.SelectMediaByID(id)
+	playback := database.SelectMediaPlayback_ByID(id)
 
-		if err != nil {
-			log.Fatalf("Couldn't retrieve media by ID: %d\n", id)
+	for _, v := range playback.Locations {
+		if v.Exists {
+			http.ServeFile(w, r, v.AbsPath)
+			return
 		}
-
-		http.ServeFile(w, r, mediaInfo.File.AbsPath)
 	}
 
-	// find by file path
-	if file != "" {
-		mediaInfo := database.FindOrCreateMedia(file)
-		http.ServeFile(w, r, mediaInfo.File.AbsPath)
-	}
+	utils.ErrorC("Couldn't LoadMedia, file doesn't exist on disk")
 }
 
-// When a playback update comes in
-func playbackUpdate(playTimeStr string, mediaID int) {
-	playTime, _ := strconv.ParseFloat(playTimeStr, 64)
-	database.UpdatePlaytime(mediaID, int(playTime))
-}
-
-func findNextMedia(mediaID int) int {
-	prevMedia, _ := database.SelectMediaByID(mediaID)
-	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(prevMedia.File.AbsPath))
-	nextID := database.FindOrCreateMedia(nextMedia).ID
+func findNextMedia(path string) int {
+	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(path))
+	nextID := database.FindOrCreatePlayback(nextMedia).ID
 
 	return nextID
 }

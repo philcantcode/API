@@ -1,161 +1,181 @@
 package database
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/philcantcode/goApi/utils"
 )
 
-// SelectDirectories returns all the locations monitored on disk
-func SelectDirectories() []utils.File {
-	rows, _ := con.Query("SELECT * FROM watchFolders ORDER BY id DESC;")
-	var res []utils.File
+// Playback is the default struct for a database item
+type Playback struct {
+	ID        int
+	Playtime  int
+	Modified  int
+	Locations []utils.File
+}
+
+// SelectRootDirectories returns all the locations monitored on disk
+func SelectRootDirectories() []utils.File {
+	stmt, err := con.Query("SELECT `path` FROM `RootDirectories`;")
+	defer stmt.Close()
+	utils.Error("Couldn't select from RootDirectories", err)
+
+	var directories []utils.File
+
+	for stmt.Next() {
+		var path string
+
+		stmt.Scan(&path)
+		directories = append(directories, utils.ProcessFile(path))
+	}
+
+	return directories
+}
+
+// SelectPlaybackID_ByHash finds a single mediaPlaybackID which correlates to
+// a playback in the MediaPlayback table
+// Returns -1 for the ID if not found
+func SelectPlaybackID_ByHash(hash string) (int, error) {
+	stmt, err := con.Prepare("SELECT `mediaPlaybackID` FROM `MediaHashes` WHERE `hash` = ? LIMIT 1;")
+	defer stmt.Close()
+	utils.Error("Couldn't SelectPlaybackID_ByHash from MediaHashes", err)
+
+	rows, err := stmt.Query(hash)
+	defer rows.Close()
+	utils.Error("Results error from SelectPlaybackID_ByHash", err)
 
 	for rows.Next() {
 		var id int
-		var folder string
+		rows.Scan(&id)
 
-		rows.Scan(&id, &folder)
-		res = append(res, utils.ProcessFile(folder))
+		return id, nil
 	}
 
-	return res
+	return -1, fmt.Errorf("Couldn't find entry in SelectPlaybackID_ByHash")
 }
 
-// MediaInfo is the default struct for a database item
-type MediaInfo struct {
-	ID       int
-	Hash     string
-	PlayTime int
-	Date     int
-	File     utils.File
-}
+// SelectPlaybackID_ByPath finds the mediaPlaybackID by the path
+// for quick lookup after the file has been hashed
+// Returns -1 if not found
+func SelectPlaybackID_ByPath(path string) (int, error) {
+	stmt, err := con.Prepare("SELECT `mediaPlaybackID` FROM `MediaHashes` WHERE `path` = ? LIMIT 1;")
+	defer stmt.Close()
+	utils.Error("Couldn't SelectPlaybackID_ByPath from MediaHashes", err)
 
-// SelectMediaByPath finds the playback in the database
-func SelectMediaByPath(path string) (MediaInfo, error) {
-	stmt, _ := con.Prepare(
-		"SELECT `id`, `path`, `playTime`, `date`" +
-			"FROM `playHistory` WHERE `path` = ? LIMIT 1;")
-
-	media := MediaInfo{}
-	rows, _ := stmt.Query(path)
-	err := errors.New("Media not found by path in playHistory")
+	rows, err := stmt.Query(path)
+	defer rows.Close()
+	utils.Error("Results error from SelectPlaybackID_ByHash", err)
 
 	for rows.Next() {
-		var mediaPath string
+		var id int
+		rows.Scan(&id)
 
-		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
+		return id, nil
+	}
 
-		media.File = utils.ProcessFile(mediaPath)
+	return -1, fmt.Errorf("Couldn't find entry in SelectPlaybackID_ByPath")
+}
+
+// SelectMediaPlayback_ByID returns the playback info given an ID
+// The ID is guarenteed to exist at this point
+func SelectMediaPlayback_ByID(id int) Playback {
+	stmt, err := con.Prepare("SELECT `playtime`, `modified` FROM `MediaPlayback` WHERE `id` = ?;")
+	defer stmt.Close()
+	utils.Error("Couldn't SelectMediaPlayback_ByID from MediaPlayback", err)
+
+	rows, err := stmt.Query(id)
+	defer rows.Close()
+	utils.Error("Results error from SelectMediaPlayback_ByID", err)
+
+	paths, err := selectMediaPaths_ByID(id)
+	utils.Error("Couldn't retrieve path locations from selectMediaPaths_ByID", err)
+
+	playback := Playback{ID: id, Locations: paths}
+
+	for rows.Next() {
+		rows.Scan(&playback.Playtime, &playback.Modified)
+	}
+
+	return playback
+}
+
+// selectMediaPaths_ByID returns an array of files that match the ID from
+// the MediaHashes database
+func selectMediaPaths_ByID(id int) ([]utils.File, error) {
+	stmt, err := con.Prepare("SELECT `path` FROM `MediaHashes` WHERE `mediaPlaybackID` = ?;")
+	defer stmt.Close()
+	utils.Error("Couldn't SelectMediaPath_ByID from MediaHashes", err)
+
+	rows, err := stmt.Query(id)
+	defer rows.Close()
+	utils.Error("Results error from SelectMediaPath_ByID", err)
+
+	paths := []utils.File{}
+
+	for rows.Next() {
+		var path string
+		rows.Scan(&path)
 		err = nil
+
+		paths = append(paths, utils.ProcessFile(path))
 	}
 
-	return media, err
+	if len(paths) == 0 {
+		err = fmt.Errorf("Couldn't find any paths by ID in SelectMediaPaths_ByID")
+	}
+
+	return paths, err
 }
 
-// SelectAllMedia finds the playback in the database
-func SelectAllMedia() []MediaInfo {
-	stmt, _ := con.Prepare(
-		"SELECT `id`, `hash`, `path`, `playTime`, `date` FROM `playHistory` ORDER BY `id` ASC;")
+// SelectPlaybacks_ByTime finds the playback in the from a given timepoint
+func SelectPlaybacks_ByTime(unixTime int64) []Playback {
+	var recentPlayList []Playback
 
-	var mediaList []MediaInfo
-	rows, _ := stmt.Query()
+	stmt, err := con.Prepare("SELECT `id` FROM `MediaPlayback` WHERE `modified` >= ?;")
+	defer stmt.Close()
+	utils.Error("Couldn't SelectPlaybacks_ByTime from MediaPlayback", err)
+
+	rows, err2 := stmt.Query(unixTime)
+	defer rows.Close()
+	utils.Error("Results error SelectPlaybacks_ByTime", err2)
 
 	for rows.Next() {
-		media := MediaInfo{}
-		var mediaPath string
+		var id int
+		rows.Scan(&id)
 
-		rows.Scan(&media.ID, &media.Hash, &mediaPath, &media.PlayTime, &media.Date)
-
-		media.File = utils.ProcessFile(mediaPath)
-		mediaList = append(mediaList, media)
+		recentPlayList = append(recentPlayList, SelectMediaPlayback_ByID(id))
 	}
 
-	return mediaList
+	return recentPlayList
 }
 
-// SelectMediaHash finds the hash for a playHistory path
-func SelectMediaHash(path string) string {
-	stmt, _ := con.Prepare(
-		"SELECT `hash` FROM `playHistory` WHERE `path` = ? LIMIT 1;")
+// SelectAllPlaybacks finds the playback in the database
+func SelectAllPlaybacks() []Playback {
+	stmt, err := con.Prepare("SELECT `id`, `playtime`, `modified` FROM `MediaPlayback`;")
+	defer stmt.Close()
+	utils.Error("Couldn't SelectAllPlaybacks from MediaPlayback", err)
 
-	rows, _ := stmt.Query(path)
-	var hash string
+	rows, err := stmt.Query()
+	defer rows.Close()
+	utils.Error("Results error from SelectAllPlaybacks", err)
+
+	var playbackList []Playback
 
 	for rows.Next() {
-		rows.Scan(&hash)
+		playback := Playback{}
+		rows.Scan(&playback.ID, &playback.Playtime, &playback.Modified)
+
+		paths, err := selectMediaPaths_ByID(playback.ID)
+		utils.Error("Couldn't retrieve path locations from SelectAllPlaybacks", err)
+		playback.Locations = paths
+
+		playbackList = append(playbackList, playback)
 	}
 
-	return hash
+	return playbackList
 }
 
-// SelectMediaByID finds the playback in the database
-func SelectMediaByID(id int) (MediaInfo, error) {
-	stmt, _ := con.Prepare(
-		"SELECT `id`, `path`, `playTime`, `date`" +
-			"FROM `playHistory` WHERE `id` = ? LIMIT 1;")
-
-	media := MediaInfo{}
-	rows, _ := stmt.Query(id)
-	err := errors.New("Media not found by ID in playHistory")
-
-	for rows.Next() {
-		var mediaPath string
-
-		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
-
-		media.File = utils.ProcessFile(mediaPath)
-		err = nil
-	}
-
-	return media, err
-}
-
-// SelectMediaByHash finds the playback in the database given a hash or alt hash
-func SelectMediaByHash(hash string) (MediaInfo, error) {
-	stmt, _ := con.Prepare(
-		"SELECT `id`, `path`, `playTime`, `date`" +
-			"FROM `playHistory` WHERE `hash` = ? OR `altHash` = ? LIMIT 1;")
-
-	media := MediaInfo{}
-	rows, _ := stmt.Query(hash, hash)
-	err := errors.New("Media not found by hash in playHistory")
-
-	for rows.Next() {
-		var mediaPath string
-
-		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
-
-		media.File = utils.ProcessFile(mediaPath)
-		err = nil
-	}
-
-	return media, err
-}
-
-// SelectMediaByTime finds the playback in the from a given timepoint
-func SelectMediaByTime(unixTime int64) []MediaInfo {
-
-	var mediaList []MediaInfo
-
-	stmt, _ := con.Prepare(
-		"SELECT `id`, `path`, `playTime`, `date`" +
-			"FROM `playHistory` WHERE `date` >= ?;")
-
-	rows, _ := stmt.Query(unixTime)
-
-	for rows.Next() {
-		media := MediaInfo{}
-		var mediaPath string
-
-		rows.Scan(&media.ID, &mediaPath, &media.PlayTime, &media.Date)
-
-		media.File = utils.ProcessFile(mediaPath)
-		mediaList = append(mediaList, media)
-	}
-
-	return mediaList
-}
+////////////////////////////////////////////////////////////////////////////////
 
 type FfmpegHistory struct {
 	ArchivePath utils.File
@@ -168,10 +188,11 @@ type FfmpegHistory struct {
 
 // FindFfmpegHistory gets the history for an ffmpeg conversion
 func FindFfmpegHistory(anyPath string) FfmpegHistory {
-	stmt, _ := con.Prepare(
+	stmt, err := con.Prepare(
 		"SELECT `archivePath`, `mp4Path`, `codecs`, `conversions`, `duration`, `date`" +
 			"FROM `ffmpeg` WHERE `archivePath` = ? OR `mp4Path` = ? LIMIT 1;")
 
+	utils.Error("Couldn't select from ffmpeg", err)
 	rows, _ := stmt.Query(anyPath, anyPath)
 	var h FfmpegHistory
 
@@ -186,6 +207,8 @@ func FindFfmpegHistory(anyPath string) FfmpegHistory {
 		h.Mp4Path = utils.ProcessFile(mp4Path)
 	}
 
+	rows.Close()
+	stmt.Close()
 	return h
 }
 
@@ -193,11 +216,12 @@ func FindFfmpegHistory(anyPath string) FfmpegHistory {
 func SelectAllFfmpeg() []FfmpegHistory {
 	var histories []FfmpegHistory
 
-	stmt, _ := con.Prepare(
-		"SELECT `archivePath`, `mp4Path`, `codecs`, `conversions`, `duration`, `date`" +
-			"FROM `ffmpeg` ORDER BY `id` DESC;")
+	stmt, err := con.Prepare("SELECT `originalPath`, `archivePath`, " +
+		"`originalCodecs`, `convertedCodecs`, `duration`, `date` " +
+		"FROM `FfmpegConversions` ORDER BY `id` DESC;")
 
-	rows, _ := stmt.Query()
+	utils.Error("Couldn't select all from FfmpegConversions", err)
+	rows, err := stmt.Query()
 
 	for rows.Next() {
 		h := FfmpegHistory{}
@@ -213,6 +237,8 @@ func SelectAllFfmpeg() []FfmpegHistory {
 		histories = append(histories, h)
 	}
 
+	rows.Close()
+	stmt.Close()
 	return histories
 }
 
@@ -220,9 +246,9 @@ func SelectAllFfmpeg() []FfmpegHistory {
 func SelectFfmpegPriority() []utils.File {
 	var priorityFolders []utils.File
 
-	stmt, _ := con.Prepare(
-		"SELECT `path` FROM `ffmpegPriority` ORDER BY `id` DESC;")
+	stmt, err := con.Prepare("SELECT `path` FROM `FfmpegPriority` ORDER BY `id` DESC;")
 
+	utils.Error("Couldn't select from FfmpegPriority", err)
 	rows, _ := stmt.Query()
 
 	for rows.Next() {
@@ -233,5 +259,7 @@ func SelectFfmpegPriority() []utils.File {
 		priorityFolders = append(priorityFolders, utils.ProcessFile(path))
 	}
 
+	rows.Close()
+	stmt.Close()
 	return priorityFolders
 }

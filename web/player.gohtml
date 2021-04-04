@@ -24,7 +24,7 @@
 
       <div class="box-body">
         {{range .Contents.Files}}
-        <a href="?play={{ .AbsPath }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg"><span class="fa fa-play-circle"></span> {{ .Name }}{{ .Ext }}</a>
+        <a href="?play={{ .AbsPath }}&open={{ $.Contents.OpenParam }}" class="btn btn-lg"><span class="fa fa-play-circle"></span> {{ .FileName }}{{ .Ext }}</a>
         {{end}}
       </div>
 
@@ -48,17 +48,19 @@
   </div>
 </div>
 
-{{ if .Contents.MediaInfo.File.Path }}
+{{ if .Contents.PlayParam.AbsPath }}
 <div class="box box-success">
   <div class="box-header with-border">
-    <h3 class="box-title wrap">Currently Watching <span id="currently-watching">{{ .Contents.MediaInfo.File.PrintName }}</span></h3>
+    <h3 class="box-title wrap">Currently Watching <span id="currently-watching">{{ .Contents.PlayParam.PrintName }}</span></h3>
+    <h2>Device ID: {{ .Contents.DeviceID }}</h2>
     <div class="box-tools pull-right">
       <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
     </div>
   </div>
   
   <div class="box-body">    
-    <video controls autoplay id="player" width="100%" src="/player/load?file={{ .Contents.MediaInfo.File.AbsPath }}#t={{ .Contents.MediaInfo.PlayTime }}">
+    <!-- /player/load?id={{ .Contents.Playback.ID }}#t={{ .Contents.Playback.Playtime }} -->
+    <video controls autoplay id="player" width="100%" src="">
       <track label="English subtitles" kind="subtitles" srclang="en" src="" default=""> 
       Your browser does not support the HTML5 Video element.
     </video>
@@ -67,17 +69,55 @@
 </div>
 
 <script type="text/javascript">
-
   var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
   var url = "http://" + wsurl;
 
-  var socket;
+  var socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/player/{{ .Contents.DeviceID }}");
 
   var player = document.getElementById("player");
-  var id = "{{ .Contents.MediaInfo.ID }}";
   var rewindAmount = 10;
+  var playback;
 
-  $(window).load(function() 
+  // Once the socket opens, setup the media player
+  socket.onopen = function(e) 
+  {
+      socket.send("control:change-media:{{ .Contents.SafePlayParam }}");
+  };
+
+  // Incoming messages back to the player
+  socket.onmessage = function(msg) 
+  {
+      if (msg.data.length > 0)
+      {
+          var response = JSON.parse(msg.data);
+          console.log("Player Received: " + msg.data);
+
+          switch(response.Key) 
+          {
+              case "play":
+                    player.play();
+                    break;
+              case "pause":
+                    player.pause();
+                    break;
+              case "rewind":
+                    fastforward(-parseInt(val));
+                    break;
+              case "fastforward":
+                    fastforward(parseInt(val));
+                    break;
+              case "change-media":
+                    changeMedia(response.Playback.ID, response.Playback.Playtime);
+                    break;
+                case "media-info":
+                    var mediaInfo = val.split(";");
+                    $("#currently-watching").text(mediaInfo[1]);
+                    break;
+          }
+      }
+  };
+
+  $(document).ready(function() 
   {
       $("#media-list").click();
   });
@@ -85,53 +125,6 @@
   $("#player").bind("ended", function() {
      socket.send("control:skip")
   });
-
-  openSocket(id);
-
-  function openSocket(sid)
-  {
-      socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/player?id=" + sid);
-
-      // Incoming messages back to the player
-      socket.onmessage = function(msg) 
-      {
-          if (msg.data.length > 0)
-          {
-              console.log("Player Received: " + msg.data)
-              var commands = msg.data.split(":");
-
-              for (let i = 0; i < commands.length; i += 3) 
-              {
-                  var type = commands[i];  // e.g., control
-                  var key = commands[i+1]; // e.g, pause/play
-                  var val = commands[i+2]; // e.g., 10
-
-                  switch(key) {
-                      case "play":
-                            player.play();
-                            break;
-                      case "pause":
-                            player.pause();
-                            break;
-                      case "rewind":
-                            fastforward(-parseInt(val));
-                            break;
-                      case "fastforward":
-                            fastforward(parseInt(val));
-                            break;
-                      case "skip-to":
-                            skip(val);
-                            socket.send("change-id:" + val);                
-                            break;
-                       case "media-info":
-                            var mediaInfo = val.split(";");
-                            $("#currently-watching").text(mediaInfo[1]);
-                            break;
-                  }
-              }
-          }
-      };
-  }
 
   function closeSocket()
   {
@@ -148,6 +141,7 @@
       }
   }, 10000);
 
+  // Key functions
   $(document).on("keydown", function (e) 
   {
       switch(e.key)
@@ -181,22 +175,23 @@
   }
 
   // Skip to the next media
-  function skip(nid)
+  function changeMedia(mediaID, playtime)
   {
-        console.log("shud skip to " + nid)
+        console.log("Changing media to: " + mediaID)
         // Stop the current media
         player.pause();
         player.setAttribute("src", "");
         player.load();
 
-        id = nid;
+        id = mediaID;
 
-        player.setAttribute("src", "/player/load?id=" + id + "#");
+        player.setAttribute("src", "/player/load?id=" + id + "#t=" + playtime);
         player.load();
         player.play();
   }
-  </script>
-{{end}}
+</script>
+{{ end }}
+
 <script type="text/javascript">
   $("#ffmpeg-priority").on("click", function(e)
   {
@@ -217,7 +212,6 @@
 
     console.log("Priority");
   });
-  </script>
 </script>
 {{template "footer" . }}
 {{end}}

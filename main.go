@@ -28,7 +28,10 @@ func main() {
 	router.HandleFunc("/player/ffmpeg/play", player.PlayFfmpeg)
 	router.HandleFunc("/player/ffmpeg/control", player.ControlFfmpeg)
 
-	router.HandleFunc("/player/ws-setup/{page}", player.SocketSetup)
+	// {pageType} = player/remote
+	// {devID} = jIAakjdfI device ID
+	// {medID} = 5 media ID form playback
+	router.HandleFunc("/player/ws-setup/{pageType}/{devID}", player.SocketSetup)
 	router.HandleFunc("/player/load", player.LoadMedia)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))

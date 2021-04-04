@@ -45,7 +45,7 @@
       <div class="box-body">
         <p>These are all the folders currently tracked</p>
         {{range .Contents.TrackedFolders}}
-          <a class="btn btn-danger" href="?untrack={{.Path}}">Untrack {{ .Path }} <i class="fa fa-times"></i></a>
+          <a class="btn btn-danger" href="?untrack={{ .AbsPath }}">Untrack {{ .AbsPath }} <i class="fa fa-times"></i></a>
         {{end}}
       </div>
   </div>

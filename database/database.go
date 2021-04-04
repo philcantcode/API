@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"runtime"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -32,99 +31,87 @@ func init() {
 	con, _ = sql.Open("sqlite3", dbLoc)
 
 	// Top level directories to keep track of
-	statement, _ := con.Prepare(
+	stmt, err := con.Prepare(
 		"CREATE TABLE IF NOT EXISTS RootDirectories" +
-			"(id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT UNIQUE)")
-	statement.Exec()
+			"(path TEXT PRIMARY KEY UNIQUE)")
+	stmt.Exec()
+	utils.Error("Couldn't create Database: RootDirectories", err)
 
-	// The playhistory for media files
-	// The hash is the fist computed hash for the file, the alt hash is used if a
-	// conversion takes place resulting in an old hash and a new hash for the two
-	// versions of the file
-	statement, _ = con.Prepare(
+	// Where each media is up to in its payback and date it was modified
+	stmt, err = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS MediaPlayback " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" playtime TEXT, " +
-			" modified INTEGER)")
-	statement.Exec()
+			" playtime INTEGER DEFAULT 0, " +
+			" modified INTEGER DEFAULT -1)")
+	stmt.Exec()
+	utils.Error("Couldn't create Database: MediaPlayback", err)
 
-	// Depricated database only used by Java
-	statement, _ = con.Prepare(
-		"CREATE TABLE IF NOT EXISTS folderMeta " +
-			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
+	// Hashes of files point to a media playback so multiple files can have
+	// be in the same playback time, e.g., the .mp4 and .avi files can still
+	// playback at the same time
+	stmt, err = con.Prepare(
+		"CREATE TABLE IF NOT EXISTS MediaHashes " +
+			"(id INTEGER PRIMARY KEY UNIQUE, " +
+			" hash TEXT NOT NULL, " +
 			" path TEXT NOT NULL, " +
-			" type INTEGER)")
-	statement.Exec()
-
-	// Depricated database only used by Java
-	statement, _ = con.Prepare(
-		"CREATE TABLE IF NOT EXISTS fileTrack " +
-			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" path TEXT NOT NULL, " +
-			" dateAdded TEXT NOT NULL)")
-	statement.Exec()
-
-	// Depricated database only used by Java
-	statement, _ = con.Prepare(
-		"CREATE TABLE IF NOT EXISTS settings " +
-			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" key TEXT UNIQUE, " +
-			" value TEXT)")
-	statement.Exec()
+			" mediaPlaybackID INTEGER NOT NULL)")
+	stmt.Exec()
+	utils.Error("Couldn't create Database: MediaHashes", err)
 
 	// Keeps track of file conversions using FFMPEG
-	statement, _ = con.Prepare(
-		"CREATE TABLE IF NOT EXISTS ffmpeg " +
+	stmt, err = con.Prepare(
+		"CREATE TABLE IF NOT EXISTS FfmpegConversions " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" archivePath TEXT, " +
-			" mp4Path TEXT, " +
-			" codecs TEXT, " +
-			" conversions TEXT, " +
-			" duration TEXT, " +
-			" date INTEGER NOT NULL)")
-	statement.Exec()
+			" originalPath TEXT, " + // The original location of the file
+			" archivePath TEXT, " + // Where the file was moved to
+			" originalCodecs TEXT, " + // Original Audio / Video format
+			" convertedCodecs TEXT, " + // Conversion Audio / Video Format
+			" duration TEXT, " + // Duration of how long it took
+			" date INTEGER NOT NULL)") // When the conversion occured
+	stmt.Exec()
+	utils.Error("Couldn't create Database: FfmpegConversions", err)
 
 	// Folders the user has manually marked has high priority for conversion
-	statement, _ = con.Prepare(
-		"CREATE TABLE IF NOT EXISTS ffmpegPriority " +
-			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" path TEXT UNIQUE)")
-	statement.Exec()
+	stmt, err = con.Prepare(
+		"CREATE TABLE IF NOT EXISTS FfmpegPriority " +
+			"(path TEXT PRIMARY KEY UNIQUE)")
+	stmt.Exec()
+	utils.Error("Couldn't create Database: FfmpegPriority", err)
 
-	// Convert dates created in Java (System.currentTimeMillis()) which are
-	// 1000x larger than golang times to be compatible
-	statement, _ = con.Prepare(
-		"UPDATE playHistory SET date = (date / 1000) WHERE date > 1000000000000")
-	statement.Exec()
+	stmt.Close()
 }
 
-// FindOrCreateMedia searches for or creates a media by a given path
-func FindOrCreateMedia(path string) MediaInfo {
-	// Try find by path first
-	mediaInfo, err := SelectMediaByPath(path)
+// FindOrCreatePlayback takes in a path and either finds or creates
+// the playback in the database
+// Step 1: Hash the file
+// Step 2: Check if the file has been previously hashed and find playback
+// Step 3: If not, create it
+func FindOrCreatePlayback(path string) Playback {
+	// Fast lookup to see if the path exists in DB
+	mediaPlaybackID, _ := SelectPlaybackID_ByPath(path)
 
-	if err == nil {
-		return mediaInfo
+	if mediaPlaybackID != -1 {
+		return SelectMediaPlayback_ByID(mediaPlaybackID)
 	}
 
-	// Try find by computing hash
-	fmt.Println("[FindOrCreateMedia] Computing File Hash, Please Wait")
-	hash, _ := utils.Hash(path)
-	mediaInfo, err = SelectMediaByHash(hash)
+	// Slower hash check to see if the hash exists
+	fmt.Printf("FindOrCreatePlayback hashing %s, please wait\n", path)
+	hash, err := utils.MD5Hash(path)
+	utils.Error("Couldn't MD5Hash "+path, err)
+	mediaPlaybackID, err = SelectPlaybackID_ByHash(hash)
 
-	// Hash Found
-	if err == nil {
-		UpdateMediaPathByHash(mediaInfo.File.AbsPath, hash)
-		return mediaInfo
+	if mediaPlaybackID != -1 {
+		return SelectMediaPlayback_ByID(mediaPlaybackID)
 	}
 
-	// Doesn't exist in DB
-	id := InsertMedia(utils.ProcessFile(path))
-	mediaInfo, err = SelectMediaByID(id)
+	// Couldn't find a hash or path entry in the DB so create it
+	mediaPlaybackID = InsertMediaPlayback()
+	InsertMediaHash(hash, path, mediaPlaybackID)
 
-	if err != nil {
-		log.Fatal("Couldn't find or create media in playHistory")
-	}
+	return SelectMediaPlayback_ByID(mediaPlaybackID)
+}
 
-	return mediaInfo
+func DatabaseStats() {
+	fmt.Printf("Num Connections: %d\n", con.Stats().OpenConnections)
+	fmt.Printf("Num InUse Connections: %d\n", con.Stats().InUse)
 }

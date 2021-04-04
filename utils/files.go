@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -13,18 +12,21 @@ import (
 var alphaNumFilter *regexp.Regexp
 
 func init() {
-	alphaNumFilter, _ = regexp.Compile("[^A-Za-z0-9]+")
+	var err error
+	alphaNumFilter, err = regexp.Compile("[^A-Za-z0-9]+")
+	Error("Couldn't compile alphaNumFilter regex", err)
 }
 
 // File represents a file on OS
 type File struct {
-	Name      string // No Extension
+	FileName  string // No Extension
 	PrintName string // No Extension, spaces
 	Path      string // Folder
 	Ext       string // .Extension
 
 	AbsPath    string   // Path + Name + Ext
 	PathTokens []string // Each piece of the file path
+	Exists     bool     // If the file is found on disk
 }
 
 // GetFolderLayer returns a list of folders
@@ -64,13 +66,12 @@ func IsLegalPath(path string) bool {
 		return false
 	}
 
-	if f.Name == "System Volume Information" {
+	if f.FileName == "System Volume Information" {
 		return false
 	}
 
 	// If any of the path tokens starts with illegal char
 	for i := 0; i < len(f.PathTokens); i++ {
-		fmt.Printf("::: %s\n", f.AbsPath)
 		switch string(f.PathTokens[i][0]) {
 		case ".":
 			return false
@@ -87,48 +88,44 @@ func ProcessFile(path string) File {
 	sep := string(filepath.Separator)
 	file := File{}
 
-	// If there is a system separator in the path
-	if strings.Contains(path, sep) {
-		tokens := strings.Split(path, sep)
-		fileName := tokens[len(tokens)-1] // Last token = file name
-		filePath := strings.Join(tokens[0:len(tokens)-1], sep)
+	if len(path) == 0 {
+		ErrorC("ProcessFile path length is 0: ")
+	}
 
-		file.Path = filePath + sep
-		file.PathTokens = tokens
+	// Split the file into parts by the system separator
+	// e.g., /Users/Phil/Desktop/MediaTest becomes array['Users', 'Phil', 'Desktop', 'MediaTest']
+	file.PathTokens = strings.Split(path, sep)
 
-		// If contains an extension
-		if strings.Contains(fileName, ".") {
-			fileTokens := strings.Split(fileName, ".")
-			fileExt := fileTokens[len(fileTokens)-1]
-			fileName := strings.Join(fileTokens[0:len(fileTokens)-1], ".")
+	// Last token becomes the temp file name
+	tempFileName := file.PathTokens[len(file.PathTokens)-1]
+	file.Path = strings.Join(file.PathTokens, sep)
 
-			file.Ext = "." + fileExt
-			file.Name = fileName
+	// Last token contains a . for EXT
+	if strings.Contains(tempFileName, ".") {
+		file.Path = strings.Join(file.PathTokens[0:len(file.PathTokens)-1], sep) + sep
 
-			fileName = alphaNumFilter.ReplaceAllString(fileName, " ")
-			file.PrintName = fileName
-		} else {
-			file.Name = fileName
-		}
-	} else { // Single file or folder
-		file.PathTokens = []string{path}
+		fileTokens := strings.Split(tempFileName, ".")
+		fileExt := fileTokens[len(fileTokens)-1]
 
-		if strings.Contains(path, ".") {
-			fileTokens := strings.Split(path, ".")
-			fileExt := fileTokens[len(fileTokens)-1]
-			fileName := strings.Join(fileTokens[0:len(fileTokens)-1], ".")
+		file.Ext = "." + fileExt
+		file.FileName = strings.Join(fileTokens[0:len(fileTokens)-1], ".")
+	}
 
-			file.Ext = "." + fileExt
-			file.Name = fileName
+	file.PrintName = alphaNumFilter.ReplaceAllString(file.FileName, " ")
+	file.AbsPath = file.Path + file.FileName + file.Ext
 
-			fileName = alphaNumFilter.ReplaceAllString(fileName, " ")
-			file.PrintName = fileName
-		} else {
-			file.Name = path
+	// Reclice any file paths that are ''
+	for i := 0; i < len(file.PathTokens); i++ {
+		if file.PathTokens[i] == "" {
+			file.PathTokens = RemoveIndex(file.PathTokens, i)
 		}
 	}
 
-	file.AbsPath = file.Path + file.Name + file.Ext
+	if string(file.Path[len(file.Path)-1]) != sep {
+		file.Path += sep
+	}
+
+	file.Exists = FileExists(file)
 
 	return file
 }
@@ -157,14 +154,25 @@ func GetNextMatchingOrderedFile(file File) string {
 	files := GetFilesLayer(file.Path)
 
 	for i := 0; i < len(files); i++ {
-		if files[i].Name == file.Name {
+		if files[i].FileName == file.FileName {
 			for j := i + 1; j < len(files); j++ {
 				if files[j].Ext == file.Ext {
-					return files[j].Path + files[j].Name + files[j].Ext
+					return files[j].Path + files[j].FileName + files[j].Ext
 				}
 			}
 		}
 	}
 
 	return ""
+}
+
+// FileExists returns true/false as to whether the file exists
+func FileExists(f File) bool {
+	_, err := os.Stat(f.AbsPath)
+
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	return true
 }

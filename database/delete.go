@@ -1,11 +1,21 @@
 package database
 
-func UnTrackFolder(folder string) {
-	statement, _ := con.Prepare("DELETE FROM `watchFolders` WHERE `path` = ?;")
-	statement.Exec(folder)
+import (
+	"github.com/philcantcode/goApi/utils"
+)
+
+func DeleteRootDirectory(path string) {
+	stmt, err := con.Prepare("DELETE FROM `RootDirectories` WHERE `path` = ?;")
+	stmt.Exec(path)
+	stmt.Close()
+
+	utils.Error("Couldn't Delete From RootDirectory", err)
 }
 
 func DeleteFfmpegEntry(path string) {
-	statement, _ := con.Prepare("DELETE FROM `ffmpeg` WHERE `archivePath` = ? OR `mp4Path` = ?;")
-	statement.Exec(path, path)
+	stmt, err := con.Prepare("DELETE FROM `FfmpegConversions` WHERE `originalPath` = ? OR `archivePath` = ?;")
+	stmt.Exec(path, path)
+	stmt.Close()
+
+	utils.Error("Couldn't Delete From FfmpegHistory", err)
 }

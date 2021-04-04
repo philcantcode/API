@@ -34,7 +34,7 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 		FfmpegHistory  []database.FfmpegHistory
 	}{
 		Selected:       pathParam,
-		TrackedFolders: database.SelectDirectories(),
+		TrackedFolders: database.SelectRootDirectories(),
 		Drives:         utils.GetDefaultSystemDrives(),
 		FfmpegMetrics:  FfmpegStat,
 		FfmpegHistory:  database.SelectAllFfmpeg(),
@@ -45,11 +45,11 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if trackParam != "" {
-		database.InsertFolder(trackParam)
+		database.InsertRootDirectory(trackParam)
 	}
 
 	if untrackParam != "" {
-		database.UnTrackFolder(untrackParam)
+		database.DeleteRootDirectory(untrackParam)
 	}
 
 	managePage.Contents = data
@@ -82,7 +82,7 @@ func RestoreFfmpeg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Moves archived file back & delete mp4 file
-	restorationPath := f.Path + archivedPath.ArchivePath.Name + archivedPath.ArchivePath.Ext
+	restorationPath := f.Path + archivedPath.ArchivePath.FileName + archivedPath.ArchivePath.Ext
 	fmt.Printf("Restoring (moving) %s to %s\n", archivedPath.ArchivePath.AbsPath, restorationPath)
 	err := os.Rename(archivedPath.ArchivePath.AbsPath, restorationPath)
 
@@ -93,7 +93,7 @@ func RestoreFfmpeg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove the old .mp4 file
-	err = os.Remove(f.Path + f.Name + ".mp4")
+	err = os.Remove(f.Path + f.FileName + ".mp4")
 
 	if err != nil {
 		w.Write([]byte("Delete Error"))

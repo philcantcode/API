@@ -1,7 +1,6 @@
 package player
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -10,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/philcantcode/goApi/database"
@@ -57,26 +55,27 @@ func init() {
 		ffmpegPath = "./res/ffmpeg/ffmpeg.exe"
 		ffmpegZip = "res/ffmpeg/ffmpeg.zip"
 		unzipFFMPEG()
-		go ConvertTrackedMediaDrives()
+		//go ConvertTrackedMediaDrives()
 	case "darwin":
 		ffmpegPath = "/res/ffmpeg/ffmpeg-osx"
 		ffmpegZip = "res/ffmpeg/ffmpeg-osx.zip"
 		unzipFFMPEG()
-		go ConvertTrackedMediaDrives()
+		//go ConvertTrackedMediaDrives()
 	case "linux":
 		fmt.Println("OS Not Supported For File Conversion")
 	default:
 		fmt.Printf("%s.\n", os)
 	}
 
-	go generateExistingMediaHashes()
+	//go generateExistingMediaHashes()
+	fmt.Println("Disabled background hashing + ffmpeg conversions")
 }
 
 // ConvertTrackedMediaDrives should be run on a new thread
 func ConvertTrackedMediaDrives() {
 	for {
 		drives := database.SelectFfmpegPriority()
-		drives = append(drives, database.SelectDirectories()...)
+		drives = append(drives, database.SelectRootDirectories()...)
 
 		// There's a manual folder conversion priority set
 		if ConversionPriorityFolder != "" {
@@ -118,8 +117,8 @@ func convertWalkFunc(path string, info os.FileInfo, err error) error {
 // the codec
 func ConvertToMP4(path string, stdout bool, remove bool) {
 	// Ensure the file exists in the playHistory
-	targFile := database.FindOrCreateMedia(path).File
-	mp4File := utils.ProcessFile(targFile.Path + targFile.Name + ".mp4")
+	/*targFile := database.FindOrCreatePlayback(path).
+	mp4File := utils.ProcessFile(targFile.Path + targFile.FileName + ".mp4")
 	hash := database.SelectMediaHash(path)
 
 	if DisableFfmpeg == true {
@@ -156,12 +155,12 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	var targVideo string
 	var targAudio string
 
-	fmt.Printf("Starting FFMPEG (Threads: %d) \n   > %s \n   > %s \n   > Codecs: %s / %s \n   > ", NumFfmpegThreads, (targFile.Name + targFile.Ext), targFile.Path, codec, audio)
+	fmt.Printf("Starting FFMPEG (Threads: %d) \n   > %s \n   > %s \n   > Codecs: %s / %s \n   > ", NumFfmpegThreads, (targFile.FileName + targFile.Ext), targFile.Path, codec, audio)
 
 	// If the hash hasn't been created, generate it
 	if len(hash) == 0 {
 		fmt.Printf("Generating MD5 Hash\n   > ")
-		hash, _ = utils.Hash(path)
+		hash, _ = utils.MD5Hash(path)
 		database.UpdateMediaHash(path, hash)
 	}
 
@@ -226,17 +225,17 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	sep := string(filepath.Separator)
 	root := strings.Split(targFile.Path, sep)[0]
 	archiveFolder := root + sep + ".ffmpeg"
-	archiveFile := archiveFolder + sep + targFile.Name + targFile.Ext
+	archiveFile := archiveFolder + sep + targFile.FileName + targFile.Ext
 
 	// Make folder for .ffmpeg if doesn't exist
 	os.Mkdir(archiveFolder, 0755)
 	os.Rename(metrics.File.AbsPath, archiveFile)
-	mp4Hash, _ := utils.Hash(mp4File.AbsPath)
+	mp4Hash, _ := utils.MD5Hash(mp4File.AbsPath)
 
 	// Update ffmpeg + playhistoy database and generate altHash for new MP4 file
 	database.InsertFfmpeg(archiveFile, mp4File.AbsPath, codec+" / "+audio, targVideo+" / "+targAudio, duration)
 	database.UpdateMediaPathByHash(mp4File.AbsPath, hash)
-	database.UpdateMediaAltHash(mp4File.AbsPath, mp4Hash)
+	database.UpdateMediaAltHash(mp4File.AbsPath, mp4Hash)*/
 }
 
 func unzipFFMPEG() {
@@ -253,37 +252,5 @@ func unzipFFMPEG() {
 			log.Fatal(err)
 			return
 		}
-	}
-}
-
-// This function loops over all of the media items in the playHistory
-// and attempts to generate any missing hashes
-// Should be called in new background thread
-func generateExistingMediaHashes() {
-	print := true
-
-	for {
-		mediaList := database.SelectAllMedia()
-		counter := 0
-
-		for _, media := range mediaList {
-			if media.Hash == "" {
-				hash, err := utils.Hash(media.File.AbsPath)
-
-				if err == nil {
-					database.UpdateMediaHash(media.File.AbsPath, hash)
-				}
-			}
-
-			counter++
-
-			if counter%100 == 0 && print {
-				fmt.Printf("Background Hasher: %d / %d\n", counter, len(mediaList))
-			}
-
-		}
-
-		time.Sleep(120 * time.Second)
-		print = false
 	}
 }
