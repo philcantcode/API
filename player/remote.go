@@ -24,7 +24,7 @@ type LoadedMedia struct {
 func RemotePage(w http.ResponseWriter, r *http.Request) {
 	reload()
 
-	idParam := r.FormValue("id")
+	remoteID := r.FormValue("id")
 
 	data := struct {
 		IP   string
@@ -37,15 +37,15 @@ func RemotePage(w http.ResponseWriter, r *http.Request) {
 	}{
 		IP:       utils.Host,
 		Port:     utils.Port,
-		RemoteID: idParam,
+		RemoteID: remoteID,
 	}
 
 	for remoteID, channel := range players {
 		data.LoadedMedia = append(data.LoadedMedia, LoadedMedia{RemoteID: remoteID, Playback: channel.playback})
 	}
 
-	if idParam != "" {
-		data.ControllingMedia = LoadedMedia{RemoteID: idParam, Playback: players[idParam].playback}
+	if remoteID != "" {
+		data.ControllingMedia = LoadedMedia{RemoteID: remoteID, Playback: players[remoteID].playback}
 	}
 
 	remotePage.Contents = data

@@ -95,8 +95,9 @@ func FindOrCreatePlayback(path string) Playback {
 	}
 
 	// Slower hash check to see if the hash exists
-	fmt.Printf("FindOrCreatePlayback hashing %s, please wait\n", path)
+	fmt.Printf("FindOrCreatePlayback hashing %s, please wait...\n", path)
 	hash, err := utils.MD5Hash(path)
+	fmt.Printf("FindOrCreatePlayback done: %s\n", hash)
 	utils.Error("Couldn't MD5Hash "+path, err)
 	mediaPlaybackID, err = SelectPlaybackID_ByHash(hash)
 
@@ -108,7 +109,23 @@ func FindOrCreatePlayback(path string) Playback {
 	mediaPlaybackID = InsertMediaPlayback()
 	InsertMediaHash(hash, path, mediaPlaybackID)
 
-	return SelectMediaPlayback_ByID(mediaPlaybackID)
+	playback := SelectMediaPlayback_ByID(mediaPlaybackID)
+	playback.PrefLoc = getPreferredLocation(playback)
+
+	return playback
+}
+
+// Returns the preferred (loaded) media location where there are
+// multiple files on disk
+func getPreferredLocation(playback Playback) int {
+	for i := 0; i < len(playback.Locations); i++ {
+		if playback.Locations[i].Exists {
+			return i
+		}
+	}
+
+	utils.ErrorC("Couldn't GetPreferredLocation, no file doesn't exist on disk")
+	return -1
 }
 
 func DatabaseStats() {

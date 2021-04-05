@@ -77,11 +77,21 @@
   var player = document.getElementById("player");
   var rewindAmount = 10;
   var playback;
+  var pauseStatusPlayback = true;
 
   // Once the socket opens, setup the media player
   socket.onopen = function(e) 
   {
       socket.send("control:change-media:{{ .Contents.SafePlayParam }}");
+
+      window.setInterval(function()
+      { 
+          if (!player.paused && !pauseStatusPlayback)
+          {
+              console.log("status:playback:" + player.currentTime);
+              socket.send("status:playback:" + player.currentTime);
+          }
+      }, 10000);
   };
 
   // Incoming messages back to the player
@@ -108,10 +118,8 @@
                     break;
               case "change-media":
                     changeMedia(response.Playback.ID, response.Playback.Playtime);
-                    break;
-                case "media-info":
-                    var mediaInfo = val.split(";");
-                    $("#currently-watching").text(mediaInfo[1]);
+                    var prefLoc = parseInt(response.Playback.PrefLoc);
+                    $("#currently-watching").text(response.Playback.Locations[prefLoc].PrintName);
                     break;
           }
       }
@@ -122,24 +130,10 @@
       $("#media-list").click();
   });
 
-  $("#player").bind("ended", function() {
-     socket.send("control:skip")
-  });
-
-  function closeSocket()
+  $("#player").bind("ended", function() 
   {
-      socket.send("close-socket");
-      socket.close();
-  }
-  
-  window.setInterval(function()
-  { 
-      if (!player.paused)
-      {
-          console.log("Player (" + id + ") > " + "status:playback:" + player.currentTime);
-          socket.send("status:playback:" + player.currentTime);
-      }
-  }, 10000);
+       socket.send("control:skip")
+  });
 
   // Key functions
   $(document).on("keydown", function (e) 
@@ -175,19 +169,19 @@
   }
 
   // Skip to the next media
-  function changeMedia(mediaID, playtime)
+  function changeMedia(id, playtime)
   {
-        console.log("Changing media to: " + mediaID)
+        console.log("Changing media to: " + id)
+        pauseStatusPlayback = true;
         // Stop the current media
         player.pause();
         player.setAttribute("src", "");
         player.load();
 
-        id = mediaID;
-
         player.setAttribute("src", "/player/load?id=" + id + "#t=" + playtime);
         player.load();
         player.play();
+        pauseStatusPlayback = false;
   }
 </script>
 {{ end }}

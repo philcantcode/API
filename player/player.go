@@ -1,6 +1,7 @@
 package player
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -181,20 +182,12 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 
 	// Find by ID - the ID is guarenteed to already exist
 	playback := database.SelectMediaPlayback_ByID(id)
-
-	for _, v := range playback.Locations {
-		if v.Exists {
-			http.ServeFile(w, r, v.AbsPath)
-			return
-		}
-	}
-
-	utils.ErrorC("Couldn't LoadMedia, file doesn't exist on disk")
+	http.ServeFile(w, r, playback.Locations[playback.PrefLoc].AbsPath)
 }
 
-func findNextMedia(path string) int {
+func findNextMedia(path string) database.Playback {
+	fmt.Printf("findNextMedia searching for next file: %s\n", path)
 	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(path))
-	nextID := database.FindOrCreatePlayback(nextMedia).ID
-
-	return nextID
+	fmt.Printf("findNextMedia found: %s\n", nextMedia)
+	return database.FindOrCreatePlayback(nextMedia)
 }

@@ -20,7 +20,7 @@
         {{range .Contents.LoadedMedia}}
           <tr>
             <th scope="row">{{ .RemoteID }}</th>
-            <td>{{ (index .Playback.Locations 0).PrintName }}</td>
+            <td id="{{ .RemoteID }}-name">{{ (index .Playback.Locations 0).PrintName }}</td>
             <td><a href="/player/remote?id={{ .RemoteID }}" class="btn btn-primary">Open Remote</a></td>
           </tr>
         {{end}}
@@ -58,15 +58,16 @@
   {
       if (msg.data.length > 0)
       {
-        var response = JSON.parse(msg.data);
+          var response = JSON.parse(msg.data);
           console.log("Remote Received: " + msg.data);
 
-          switch(key) 
+          switch(response.Key) 
           {
-              case "skip-to":
-              id = val;
-              socket.send("change-id:" + val);
-              break;
+              case "change-media":
+                  var prefLoc = parseInt(response.Playback.PrefLoc);
+                  $("#currently-watching").text(response.Playback.Locations[prefLoc].PrintName);
+                  $("#{{ .Contents.RemoteID }}-name").text(response.Playback.Locations[prefLoc].PrintName);
+                  break;
           }
       }
   };

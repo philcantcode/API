@@ -239,32 +239,21 @@ func controls(cmd command, devID string) {
 
 		sendToPlayers(response, devID)
 	case "skip": // Find next ID, send to remotes + players, change channel ID, update details
-		nextID := findNextMedia(cmd.Value)
-		skipCMD := fmt.Sprintf("update:skip-to:%d", nextID)
+		prefLoc := players[devID].playback.PrefLoc
+		nextPlayback := findNextMedia(players[devID].playback.Locations[prefLoc].AbsPath)
+		response := jsonResponse(
+			response{
+				Type:     "update",
+				Key:      "change-media",
+				Value:    fmt.Sprintf("%d", nextPlayback.ID),
+				Playback: nextPlayback})
 
-		sendToPlayers(skipCMD, devID)
-		sendToRemotes(skipCMD, devID)
-
-		//channels[nextID] = channels[devID]
-		delete(players, devID)
-
-		//media := database.SelectMediaPlayback_ByID(nextID)
-		//ret := ""
-		//ret := fmt.Sprintf("update:media-info:%d;%s;%s;%s;%s;%d;%d", id, media.File.FileName, media.Hash, media.File.AbsPath, media.File.Path, media.PlayTime, media.Date)
-
-		//sendToPlayers(ret, nextID)
-		//sendToRemotes(ret, nextID)
+		sendToPlayers(response, devID)
+		sendToRemotes(response, devID)
 	default:
 		fmt.Printf("Command: %+v", cmd)
 		utils.ErrorC("Command Unknown")
 	}
-}
-
-func jsonResponse(r response) string {
-	jsonStruct, err := json.Marshal(r)
-	utils.Error("Couldn't convert response to Json", err)
-
-	return string(jsonStruct)
 }
 
 func status(cmd command, devID string) {
@@ -273,6 +262,13 @@ func status(cmd command, devID string) {
 		playTime, _ := strconv.ParseFloat(cmd.Value, 64)
 		database.UpdatePlaytime(players[devID].playback.ID, int(playTime))
 	}
+}
+
+func jsonResponse(r response) string {
+	jsonStruct, err := json.Marshal(r)
+	utils.Error("Couldn't convert response to Json", err)
+
+	return string(jsonStruct)
 }
 
 func sendToPlayers(command string, devID string) {
