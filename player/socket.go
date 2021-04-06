@@ -30,7 +30,7 @@ type command struct {
 	Value string
 }
 
-type response struct {
+type Response struct {
 	Type     string
 	Key      string
 	Value    string
@@ -188,7 +188,7 @@ func controls(cmd command, devID string) {
 		}
 
 		response := jsonResponse(
-			response{
+			Response{
 				Type:     "update",
 				Key:      "change-media",
 				Value:    "",
@@ -198,7 +198,7 @@ func controls(cmd command, devID string) {
 		fmt.Printf("Device %s (MediaPlayback) change-media -> %d\n", devID, players[devID].playback.ID)
 	case "play":
 		response := jsonResponse(
-			response{
+			Response{
 				Type:     "command",
 				Key:      "play",
 				Value:    "",
@@ -207,7 +207,7 @@ func controls(cmd command, devID string) {
 		sendToPlayers(response, devID)
 	case "pause":
 		response := jsonResponse(
-			response{
+			Response{
 				Type:     "command",
 				Key:      "pause",
 				Value:    "",
@@ -216,7 +216,7 @@ func controls(cmd command, devID string) {
 		sendToPlayers(response, devID)
 	case "rewind":
 		response := jsonResponse(
-			response{
+			Response{
 				Type:     "command",
 				Key:      "rewind",
 				Value:    "10",
@@ -225,7 +225,7 @@ func controls(cmd command, devID string) {
 		sendToPlayers(response, devID)
 	case "fastforward":
 		response := jsonResponse(
-			response{
+			Response{
 				Type:     "command",
 				Key:      "fastforward",
 				Value:    "10",
@@ -234,21 +234,35 @@ func controls(cmd command, devID string) {
 		sendToPlayers(response, devID)
 	case "skip": // Find next ID, send to remotes + players, change channel ID, update details
 		prefLoc := players[devID].playback.PrefLoc
-		nextPlayback := findNextMedia(players[devID].playback.Locations[prefLoc].AbsPath)
-		player, exists := players[devID]
-		player.playback = nextPlayback
-		players[devID] = player
-
-		if !exists || players[devID].playback.ID == 0 {
-			utils.ErrorC("controls error, playback doesn't exist")
-		}
+		currentMedia := players[devID].playback.Locations[prefLoc]
+		nextMedia, err := utils.GetNextMatchingOrderedFile(currentMedia)
 
 		response := jsonResponse(
-			response{
+			Response{
 				Type:     "update",
-				Key:      "change-media",
-				Value:    fmt.Sprintf("%d", nextPlayback.ID),
-				Playback: nextPlayback})
+				Key:      "change-media-fail",
+				Value:    "",
+				Playback: database.Playback{}})
+
+		if err == nil {
+			fmt.Printf("findNextMedia found: %s\n", nextMedia.AbsPath)
+			nextPlayback := database.FindOrCreatePlayback(nextMedia.AbsPath)
+
+			player, exists := players[devID]
+			player.playback = nextPlayback
+			players[devID] = player
+
+			if !exists || players[devID].playback.ID == 0 {
+				utils.ErrorC("controls error, playback doesn't exist")
+			}
+
+			response = jsonResponse(
+				Response{
+					Type:     "update",
+					Key:      "change-media",
+					Value:    fmt.Sprintf("%d", nextPlayback.ID),
+					Playback: nextPlayback})
+		}
 
 		sendToPlayers(response, devID)
 		sendToRemotes(response, devID)
@@ -266,7 +280,7 @@ func status(cmd command, devID string) {
 	}
 }
 
-func jsonResponse(r response) string {
+func jsonResponse(r Response) string {
 	jsonStruct, err := json.Marshal(r)
 	utils.Error("Couldn't convert response to Json", err)
 

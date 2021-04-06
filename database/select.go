@@ -231,7 +231,7 @@ func SelectAllFfmpeg() []FfmpegHistory {
 		var arcPath string
 		var mp4Path string
 
-		rows.Scan(&arcPath, &mp4Path, &h.codecs,
+		rows.Scan(&mp4Path, &arcPath, &h.codecs,
 			&h.conversions, &h.Duration, &h.Date)
 
 		h.ArchivePath = utils.ProcessFile(arcPath)

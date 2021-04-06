@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -150,20 +151,20 @@ func GetDefaultSystemDrives() []File {
 }
 
 // GetNextMatchingOrderedFile Takes in a folder and file, returns the next ordered file or returns "" if none found
-func GetNextMatchingOrderedFile(file File) File {
+func GetNextMatchingOrderedFile(file File) (File, error) {
 	files := GetFilesLayer(file.Path)
 
 	for i := 0; i < len(files); i++ {
 		if files[i].FileName == file.FileName {
 			for j := i + 1; j < len(files); j++ {
 				if files[j].Ext == file.Ext {
-					return files[j]
+					return files[j], nil
 				}
 			}
 		}
 	}
 
-	return File{}
+	return File{}, fmt.Errorf("GetNextMatchingOrderedFile couldn't find a next file")
 }
 
 // FileExists returns true/false as to whether the file exists

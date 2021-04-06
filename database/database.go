@@ -91,7 +91,9 @@ func FindOrCreatePlayback(path string) Playback {
 	mediaPlaybackID, _ := SelectPlaybackID_ByPath(path)
 
 	if mediaPlaybackID != -1 {
-		return SelectMediaPlayback_ByID(mediaPlaybackID)
+		playback := SelectMediaPlayback_ByID(mediaPlaybackID)
+		playback.PrefLoc = GetPreferredLocation(playback)
+		return playback
 	}
 
 	// Slower hash check to see if the hash exists
@@ -110,14 +112,14 @@ func FindOrCreatePlayback(path string) Playback {
 	InsertMediaHash(hash, path, mediaPlaybackID)
 
 	playback := SelectMediaPlayback_ByID(mediaPlaybackID)
-	playback.PrefLoc = getPreferredLocation(playback)
+	playback.PrefLoc = GetPreferredLocation(playback)
 
 	return playback
 }
 
 // Returns the preferred (loaded) media location where there are
 // multiple files on disk
-func getPreferredLocation(playback Playback) int {
+func GetPreferredLocation(playback Playback) int {
 	for i := 0; i < len(playback.Locations); i++ {
 		if playback.Locations[i].Exists {
 			return i

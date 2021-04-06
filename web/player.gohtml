@@ -134,6 +134,9 @@
                     loadedMedia = response.Playback.Locations[prefLoc].AbsPath;
                     console.log("Loaded Media: " + loadedMedia);
                     break;
+              case "change-media-fail":
+                    alert("No change-media found");
+                    break;
           }
       }
   };
@@ -156,22 +159,6 @@
   {
       switch(e.key)
       { 
-          case "ArrowLeft":
-              fastforward(-parseInt(rewindAmount));
-              break;
-          case "ArrowRight":
-              fastforward(parseInt(rewindAmount));
-              break;
-          case "ArrowUp":
-              break;
-          case "ArrowDown":
-              break;
-          case " ":
-              if (player.paused)
-                  player.play();
-              else
-                  player.pause();
-              break;
           case "Enter":
                 socket.send(JSON.stringify({
                     Type: "control",

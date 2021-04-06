@@ -1,7 +1,6 @@
 package player
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -182,12 +181,6 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 
 	// Find by ID - the ID is guarenteed to already exist
 	playback := database.SelectMediaPlayback_ByID(id)
+	playback.PrefLoc = database.GetPreferredLocation(playback)
 	http.ServeFile(w, r, playback.Locations[playback.PrefLoc].AbsPath)
-}
-
-func findNextMedia(path string) database.Playback {
-	fmt.Printf("findNextMedia searching for next file: %s\n", path)
-	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(path))
-	fmt.Printf("findNextMedia found: %s\n", nextMedia.AbsPath)
-	return database.FindOrCreatePlayback(nextMedia.AbsPath)
 }
