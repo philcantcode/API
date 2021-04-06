@@ -247,7 +247,7 @@ func SelectAllFfmpeg() []FfmpegHistory {
 func SelectFfmpegPriority() []utils.File {
 	var priorityFolders []utils.File
 
-	stmt, err := con.Prepare("SELECT `path` FROM `FfmpegPriority`;")
+	stmt, err := con.Prepare("SELECT `path` FROM `FfmpegPriority` ORDER BY `path` DESC;")
 	defer stmt.Close()
 
 	utils.Error("Couldn't select from FfmpegPriority", err)
