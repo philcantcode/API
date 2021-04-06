@@ -188,6 +188,6 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 func findNextMedia(path string) database.Playback {
 	fmt.Printf("findNextMedia searching for next file: %s\n", path)
 	nextMedia := utils.GetNextMatchingOrderedFile(utils.ProcessFile(path))
-	fmt.Printf("findNextMedia found: %s\n", nextMedia)
-	return database.FindOrCreatePlayback(nextMedia)
+	fmt.Printf("findNextMedia found: %s\n", nextMedia.AbsPath)
+	return database.FindOrCreatePlayback(nextMedia.AbsPath)
 }

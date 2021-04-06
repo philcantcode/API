@@ -150,20 +150,20 @@ func GetDefaultSystemDrives() []File {
 }
 
 // GetNextMatchingOrderedFile Takes in a folder and file, returns the next ordered file or returns "" if none found
-func GetNextMatchingOrderedFile(file File) string {
+func GetNextMatchingOrderedFile(file File) File {
 	files := GetFilesLayer(file.Path)
 
 	for i := 0; i < len(files); i++ {
 		if files[i].FileName == file.FileName {
 			for j := i + 1; j < len(files); j++ {
 				if files[j].Ext == file.Ext {
-					return files[j].Path + files[j].FileName + files[j].Ext
+					return files[j]
 				}
 			}
 		}
 	}
 
-	return ""
+	return File{}
 }
 
 // FileExists returns true/false as to whether the file exists

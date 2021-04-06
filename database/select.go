@@ -217,12 +217,14 @@ func FindFfmpegHistory(anyPath string) FfmpegHistory {
 func SelectAllFfmpeg() []FfmpegHistory {
 	var histories []FfmpegHistory
 
-	stmt, err := con.Prepare("SELECT `originalPath`, `archivePath`, " +
+	stmt, err := con.Prepare("SELECT `path`, `archivePath`, " +
 		"`originalCodecs`, `convertedCodecs`, `duration`, `date` " +
 		"FROM `FfmpegConversions` ORDER BY `id` DESC;")
+	defer stmt.Close()
 
 	utils.Error("Couldn't select all from FfmpegConversions", err)
 	rows, err := stmt.Query()
+	defer rows.Close()
 
 	for rows.Next() {
 		h := FfmpegHistory{}
@@ -238,8 +240,6 @@ func SelectAllFfmpeg() []FfmpegHistory {
 		histories = append(histories, h)
 	}
 
-	rows.Close()
-	stmt.Close()
 	return histories
 }
 
@@ -247,10 +247,12 @@ func SelectAllFfmpeg() []FfmpegHistory {
 func SelectFfmpegPriority() []utils.File {
 	var priorityFolders []utils.File
 
-	stmt, err := con.Prepare("SELECT `path` FROM `FfmpegPriority` ORDER BY `id` DESC;")
+	stmt, err := con.Prepare("SELECT `path` FROM `FfmpegPriority`;")
+	defer stmt.Close()
 
 	utils.Error("Couldn't select from FfmpegPriority", err)
 	rows, _ := stmt.Query()
+	defer rows.Close()
 
 	for rows.Next() {
 		var path string
@@ -260,7 +262,5 @@ func SelectFfmpegPriority() []utils.File {
 		priorityFolders = append(priorityFolders, utils.ProcessFile(path))
 	}
 
-	rows.Close()
-	stmt.Close()
 	return priorityFolders
 }

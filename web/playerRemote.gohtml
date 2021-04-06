@@ -74,27 +74,52 @@
 
   $(".player-play").on("click", function(e)
   {
-      socket.send("control:play");
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "play",
+          Value: ""
+      }));
   });
 
   $(".player-pause").on("click", function(e)
   {
-      socket.send("control:pause");
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "pause",
+          Value: ""
+      }));
   });
 
   $(".player-rewind").on("click", function(e)
   {
-      socket.send("control:rewind");
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "rewind",
+          Value: ""
+      }));
   });
 
   $(".player-fastforward").on("click", function(e)
   {
-      socket.send("control:fastforward");
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "fastforward",
+          Value: ""
+      }));
   });
 
   $(".player-skip").on("click", function(e)
   {
-      socket.send("control:skip");
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "skip",
+          Value: ""
+      }));
   });
 
 </script>

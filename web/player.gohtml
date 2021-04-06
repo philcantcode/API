@@ -38,7 +38,7 @@
   <div class="box-header with-border">
     <h3 class="box-title">Continue Watching</h3>
     <div class="box-tools pull-right">
-      <button id="media-list" type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+      <button id="continue-watching" type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
     </div>
   </div>
   <div class="box-body">
@@ -76,22 +76,33 @@
 
   var player = document.getElementById("player");
   var rewindAmount = 10;
-  var playback;
   var pauseStatusPlayback = true;
+  var loadedMedia = "{{ .Contents.SafePlayParam }}";
 
   // Once the socket opens, setup the media player
   socket.onopen = function(e) 
   {
-      socket.send("control:change-media:{{ .Contents.SafePlayParam }}");
+      socket.send(JSON.stringify({
+          Type: "control",
+          Key: "change-media",
+          Value: loadedMedia
+      }));
 
       window.setInterval(function()
       { 
           if (!player.paused && !pauseStatusPlayback)
           {
               console.log("status:playback:" + player.currentTime);
-              socket.send("status:playback:" + player.currentTime);
+              socket.send(JSON.stringify({
+                  Type: "status",
+                  Key: "playback",
+                  Value: String(player.currentTime)
+              }));
           }
       }, 10000);
+
+      $("#media-list").click();
+      $("#continue-watching").click();
   };
 
   // Incoming messages back to the player
@@ -120,6 +131,8 @@
                     changeMedia(response.Playback.ID, response.Playback.Playtime);
                     var prefLoc = parseInt(response.Playback.PrefLoc);
                     $("#currently-watching").text(response.Playback.Locations[prefLoc].PrintName);
+                    loadedMedia = response.Playback.Locations[prefLoc].AbsPath;
+                    console.log("Loaded Media: " + loadedMedia);
                     break;
           }
       }
@@ -132,7 +145,10 @@
 
   $("#player").bind("ended", function() 
   {
-       socket.send("control:skip")
+      socket.send(JSON.stringify({
+          Type: "control",
+          Key: "skip"
+      }));
   });
 
   // Key functions
@@ -157,7 +173,11 @@
                   player.pause();
               break;
           case "Enter":
-                 socket.send("control:skip");
+                socket.send(JSON.stringify({
+                    Type: "control",
+                    Key: "skip",
+                    Value: ""
+                }));
               break;
       } 
   });

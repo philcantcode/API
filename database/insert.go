@@ -25,7 +25,7 @@ func InsertMediaPlayback() int {
 
 	utils.Error("Couldn't Insert Into MediaPlayback", err)
 
-	res, err := stmt.Exec(0, time.Now().Unix())
+	res, err := stmt.Exec(0, 0)
 	utils.Error("Results error from InsertMediaPlayback", err)
 
 	insertID, _ := res.LastInsertId()
@@ -55,24 +55,24 @@ func InsertMedia(file utils.File) int {
 
 	insertID, _ := res.LastInsertId()
 
-	stmt.Close()
+	defer stmt.Close()
 	return int(insertID)
 }
 
-func InsertFfmpeg(archivePath string, mp4Path string, codecs string, conversions string, duration string) {
-	stmt, err := con.Prepare("INSERT INTO `ffmpeg`" +
-		"(archivePath, mp4Path, codecs, conversions, duration, date) VALUES (?, ?, ?, ?, ?, ?)")
+func InsertFfmpeg(mp4Path string, archivePath string, codecs string, convCodecs string, duration string) {
+	stmt, err := con.Prepare("INSERT INTO `FfmpegConversions`" +
+		"(`path`, `archivePath`, `originalCodecs`, `convertedCodecs`, `duration`, `date`) VALUES (?, ?, ?, ?, ?, ?)")
 
-	stmt.Exec(archivePath, mp4Path, codecs, conversions, duration, time.Now().Unix())
+	stmt.Exec(mp4Path, archivePath, codecs, convCodecs, duration, time.Now().Unix())
 	utils.Error("Couldn't insert into Ffmpeg", err)
 
-	stmt.Close()
+	defer stmt.Close()
 }
 
 func InsertFfmpegPriority(path string) {
 	stmt, err := con.Prepare("INSERT INTO `ffmpegPriority` (path) VALUES (?)")
 	stmt.Exec(path)
-	stmt.Close()
+	defer stmt.Close()
 
 	utils.Error("Couldn't insert into FfmpegPriority", err)
 }

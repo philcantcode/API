@@ -62,7 +62,7 @@ func init() {
 	stmt, err = con.Prepare(
 		"CREATE TABLE IF NOT EXISTS FfmpegConversions " +
 			"(id INTEGER PRIMARY KEY AUTOINCREMENT," +
-			" originalPath TEXT, " + // The original location of the file
+			" path TEXT, " + // The original location of the file
 			" archivePath TEXT, " + // Where the file was moved to
 			" originalCodecs TEXT, " + // Original Audio / Video format
 			" convertedCodecs TEXT, " + // Conversion Audio / Video Format
@@ -98,7 +98,7 @@ func FindOrCreatePlayback(path string) Playback {
 	fmt.Printf("FindOrCreatePlayback hashing %s, please wait...\n", path)
 	hash, err := utils.MD5Hash(path)
 	fmt.Printf("FindOrCreatePlayback done: %s\n", hash)
-	utils.Error("Couldn't MD5Hash "+path, err)
+	utils.Error("Couldn't MD5Hash: "+path, err)
 	mediaPlaybackID, err = SelectPlaybackID_ByHash(hash)
 
 	if mediaPlaybackID != -1 {

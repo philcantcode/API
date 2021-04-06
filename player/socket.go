@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -138,13 +137,10 @@ func playerSocket(ws *websocket.Conn, devID string) {
 			continue
 		}
 
-		cmd := strings.Split(string(msg), ":")
+		cmd := command{}
+		err = json.Unmarshal(msg, &cmd)
 
-		if len(cmd) < 3 {
-			cmd = append(cmd, "")
-		}
-
-		players[devID].playCH <- command{Type: cmd[0], Key: cmd[1], Value: cmd[2]}
+		players[devID].playCH <- cmd
 		fmt.Printf("Device %s (player) -> %+v\n", devID, cmd)
 	}
 }
@@ -163,13 +159,11 @@ func remoteSocket(ws *websocket.Conn, devID string) {
 			continue
 		}
 
-		cmd := strings.Split(string(msg), ":")
+		cmd := command{}
+		err = json.Unmarshal(msg, &cmd)
 
-		if len(cmd) < 3 {
-			cmd = append(cmd, "")
-		}
-
-		players[devID].remoteCH <- command{Type: cmd[0], Key: cmd[1], Value: cmd[2]}
+		players[devID].playCH <- cmd
+		players[devID].remoteCH <- cmd
 		fmt.Printf("Device %s (remote) -> %+v\n", devID, cmd)
 	}
 }
@@ -241,6 +235,14 @@ func controls(cmd command, devID string) {
 	case "skip": // Find next ID, send to remotes + players, change channel ID, update details
 		prefLoc := players[devID].playback.PrefLoc
 		nextPlayback := findNextMedia(players[devID].playback.Locations[prefLoc].AbsPath)
+		player, exists := players[devID]
+		player.playback = nextPlayback
+		players[devID] = player
+
+		if !exists || players[devID].playback.ID == 0 {
+			utils.ErrorC("controls error, playback doesn't exist")
+		}
+
 		response := jsonResponse(
 			response{
 				Type:     "update",
