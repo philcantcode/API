@@ -112,12 +112,12 @@
         <tbody>
       {{range .Contents.FfmpegHistory}}
         <tr style="margin-bottom:5px; border-bottom:none;">
-          <td style="word-break:break-all;">{{ .Mp4Path.AbsPath }}</td>
+          <td style="word-break:break-all;">{{ .Path.AbsPath }}</td>
           <td style="border-top:none;">
-            <a target="_blank" href="/player?play={{ .Mp4Path.AbsPath }}" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</a>   
+            <a target="_blank" href="/player?play={{ .Path.AbsPath }}" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</a>   
           </td>
           <td style="border-top:none;">
-            <button data-path="{{ .Mp4Path.Path }}{{ .Mp4Path.FileName }}.mp4" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Restore</button>   
+            <button data-path="{{ .Path.AbsPath }}" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Restore</button>   
           </td>
         </tr>
         </tr>
@@ -181,13 +181,13 @@ $("#disable-all-ffmpeg").on("click", function(e)
 
 $(".play-ffmpeg").on("click", function(e)
 {
-    var oldPath = $(this).attr("data-path");
+    var mp4Path = $(this).attr("data-path");
 
     $.ajax({
         url: "/player/ffmpeg/play",
         type: "get",
         data: { 
-          path: oldPath
+          path: mp4Path
         },
         success: function(response) {
           
@@ -200,13 +200,13 @@ $(".play-ffmpeg").on("click", function(e)
 
 $(".revert-ffmpeg").on("click", function(e)
 {
-    var oldPath = $(this).attr("data-path");
+    var mp4Path = $(this).attr("data-path");
 
     $.ajax({
         url: "/player/ffmpeg/revert",
         type: "get",
         data: { 
-          path: oldPath
+          path: mp4Path
         },
         success: function(response) {
           switch (response) {
@@ -218,6 +218,9 @@ $(".revert-ffmpeg").on("click", function(e)
               break;
             case "Delete Error":
               alert("Error when deleting file");
+              break;
+            case "Archive File Not Found":
+              alert("The archive path couldn't be found");
               break;
           }
 

@@ -176,41 +176,44 @@ func SelectAllPlaybacks() []Playback {
 	return playbackList
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
 type FfmpegHistory struct {
-	ArchivePath utils.File
-	Mp4Path     utils.File
-	codecs      string
-	conversions string
+	ID          int
+	Path        utils.File // The new .mp4 path
+	ArchivePath utils.File // The old .avi path in .ffmpeg
+	OrigCodecs  string
+	ConvCodecs  string
 	Duration    string
 	Date        int
 }
 
 // FindFfmpegHistory gets the history for an ffmpeg conversion
-func FindFfmpegHistory(anyPath string) FfmpegHistory {
+func FindFfmpegHistory(anyPath string) (FfmpegHistory, error) {
 	stmt, err := con.Prepare(
-		"SELECT `archivePath`, `mp4Path`, `codecs`, `conversions`, `duration`, `date`" +
-			"FROM `ffmpeg` WHERE `archivePath` = ? OR `mp4Path` = ? LIMIT 1;")
+		"SELECT `id`, `path`, `archivePath`, `originalCodecs`, `convertedCodecs`, `duration`, `date`" +
+			"FROM `FfmpegConversions` WHERE `path` = ? LIMIT 1;")
 
-	utils.Error("Couldn't select from ffmpeg", err)
-	rows, _ := stmt.Query(anyPath, anyPath)
+	defer stmt.Close()
+	utils.Error("Couldn't select from FfmpegConversions", err)
+
+	rows, _ := stmt.Query(anyPath)
+	defer rows.Close()
+
 	var h FfmpegHistory
+	retError := fmt.Errorf("Conversion not found")
 
 	for rows.Next() {
-		var arcPath string
-		var mp4Path string
+		var path string       // New .mp4
+		var arcivePath string // Old .avi
 
-		rows.Scan(&arcPath, &mp4Path, &h.codecs,
-			&h.conversions, &h.Duration, &h.Date)
+		rows.Scan(&h.ID, &path, &arcivePath, &h.OrigCodecs,
+			&h.ConvCodecs, &h.Duration, &h.Date)
 
-		h.ArchivePath = utils.ProcessFile(arcPath)
-		h.Mp4Path = utils.ProcessFile(mp4Path)
+		h.Path = utils.ProcessFile(path)
+		h.ArchivePath = utils.ProcessFile(arcivePath)
+		retError = nil
 	}
 
-	rows.Close()
-	stmt.Close()
-	return h
+	return h, retError
 }
 
 // SelectAllFfmpeg gets all ffmpeg histories
@@ -231,11 +234,11 @@ func SelectAllFfmpeg() []FfmpegHistory {
 		var arcPath string
 		var mp4Path string
 
-		rows.Scan(&mp4Path, &arcPath, &h.codecs,
-			&h.conversions, &h.Duration, &h.Date)
+		rows.Scan(&mp4Path, &arcPath, &h.OrigCodecs,
+			&h.ConvCodecs, &h.Duration, &h.Date)
 
+		h.Path = utils.ProcessFile(mp4Path)
 		h.ArchivePath = utils.ProcessFile(arcPath)
-		h.Mp4Path = utils.ProcessFile(mp4Path)
 
 		histories = append(histories, h)
 	}

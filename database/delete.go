@@ -12,9 +12,9 @@ func DeleteRootDirectory(path string) {
 	utils.Error("Couldn't Delete From RootDirectory", err)
 }
 
-func DeleteFfmpegEntry(path string) {
-	stmt, err := con.Prepare("DELETE FROM `FfmpegConversions` WHERE `originalPath` = ? OR `archivePath` = ?;")
-	stmt.Exec(path, path)
+func DeleteFfmpegEntry(id int) {
+	stmt, err := con.Prepare("DELETE FROM `FfmpegConversions` WHERE `id` = ?;")
+	stmt.Exec(id)
 	stmt.Close()
 
 	utils.Error("Couldn't Delete From FfmpegHistory", err)

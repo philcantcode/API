@@ -67,24 +67,28 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 // and deleting the original file
 func RestoreFfmpeg(w http.ResponseWriter, r *http.Request) {
 	// Original path, e.g., G:/folder/movie.avi
-	origPath := r.FormValue("path")
+	mp4Path := r.FormValue("path")
+	fmt.Println("[Restoring] " + mp4Path)
 
-	fmt.Println("[Restoring] " + origPath)
-
-	f := utils.ProcessFile(origPath)
-	archivedPath := database.FindFfmpegHistory(f.AbsPath)
+	history, err := database.FindFfmpegHistory(utils.ProcessFile(mp4Path).AbsPath)
 
 	// Not found in database
 	// Probably because not finished processing yet
-	if archivedPath.ArchivePath.AbsPath == "" {
+	if err != nil {
 		w.Write([]byte("Not Found"))
 		return
 	}
 
+	if !history.ArchivePath.Exists {
+		w.Write([]byte("Archive File Not Found"))
+		return
+	}
+
 	// Moves archived file back & delete mp4 file
-	restorationPath := f.Path + archivedPath.ArchivePath.FileName + archivedPath.ArchivePath.Ext
-	fmt.Printf("Restoring (moving) %s to %s\n", archivedPath.ArchivePath.AbsPath, restorationPath)
-	err := os.Rename(archivedPath.ArchivePath.AbsPath, restorationPath)
+	srcPath := history.ArchivePath.AbsPath
+	dstPath := history.Path.Path + history.Path.FileName + history.ArchivePath.Ext
+	fmt.Printf("Restoring (moving) %s to %s\n", srcPath, dstPath)
+	err = os.Rename(srcPath, dstPath)
 
 	if err != nil {
 		fmt.Println("Could Not Restore File (Move Err)")
@@ -92,8 +96,8 @@ func RestoreFfmpeg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove the old .mp4 file
-	err = os.Remove(f.Path + f.FileName + ".mp4")
+	// Remove archive and old file
+	err = os.Remove(mp4Path)
 
 	if err != nil {
 		w.Write([]byte("Delete Error"))
@@ -101,7 +105,7 @@ func RestoreFfmpeg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove entry from the DB
-	database.DeleteFfmpegEntry(archivedPath.ArchivePath.AbsPath)
+	database.DeleteFfmpegEntry(history.ID)
 }
 
 func PlayFfmpeg(w http.ResponseWriter, r *http.Request) {

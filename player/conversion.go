@@ -238,9 +238,6 @@ func unzipFFMPEG() {
 		exec.Stderr = os.Stderr
 		err := exec.Run()
 
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
+		utils.Error("unzipFFMPEG couldn't unzip the FFMPEG files", err)
 	}
 }

@@ -77,6 +77,7 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 	if playParam != "" {
 		data.PlayParam = utils.ProcessFile(playParam)
 		data.SafePlayParam = strings.ReplaceAll(playParam, "\\", "\\\\")
+
 		data.Playback = database.FindOrCreatePlayback(playParam)
 	}
 
@@ -97,7 +98,7 @@ func getRecentlyWatched() []RecentlyPlayed {
 
 		// For each utils.File location
 		for _, location := range playback.Locations {
-			if location.Exists {
+			if location.Exists { // TODO: Rmove + fix me
 				// Loop over each token in the path
 				for i := 0; i < len(location.PathTokens); i++ {
 					nthToken := location.PathTokens[i]
@@ -183,4 +184,8 @@ func LoadMedia(w http.ResponseWriter, r *http.Request) {
 	playback := database.SelectMediaPlayback_ByID(id)
 	playback.PrefLoc = database.GetPreferredLocation(playback)
 	http.ServeFile(w, r, playback.Locations[playback.PrefLoc].AbsPath)
+}
+
+func LoadRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
+	// ret: recently palyed
 }
