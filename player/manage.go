@@ -36,7 +36,7 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 		Selected:       pathParam,
 		TrackedFolders: database.SelectRootDirectories(),
 		Drives:         utils.GetDefaultSystemDrives(),
-		FfmpegMetrics:  FfmpegStat,
+		FfmpegMetrics:  FfmpegStats,
 		FfmpegHistory:  database.SelectAllFfmpeg(),
 	}
 

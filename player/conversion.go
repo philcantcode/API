@@ -22,7 +22,7 @@ const BROWSER_AUDIO = "libmp3lame"
 var ffmpegPath string
 var ffmpegZip string
 
-var FfmpegStat []FfmpegMetrics
+var FfmpegStats []FfmpegMetrics
 var ConversionPriorityFolder = ""
 
 var codecFilter *regexp.Regexp
@@ -139,12 +139,16 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	mp4File := utils.ProcessFile(origPath.Path + origPath.FileName + ".mp4")
 
 	// Metrics struct for tracking conversion progress
-	var metrics = FfmpegMetrics{StartTime: time.Now()}
-	metrics.File = origPath
+	var metrics = FfmpegMetrics{File: origPath, StartTime: time.Now(), Status: "In Progress"}
 
-	metrics.Status = "In Progress"
-	FfmpegStat = append(FfmpegStat, metrics)
-	pos := len(FfmpegStat) - 1
+	for _, f := range FfmpegStats {
+		if f.File.AbsPath == metrics.File.AbsPath {
+			return
+		}
+	}
+
+	FfmpegStats = append(FfmpegStats, metrics)
+	pos := len(FfmpegStats) - 1
 
 	probeExec, _ := exec.Command(ffmpegPath, "-i", origPath.AbsPath).CombinedOutput()
 	codec := codecFilter.FindStringSubmatch(string(probeExec))[2]
@@ -193,18 +197,18 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	err := ffmpeg.Run()
 
 	// Calculate duration of conversion
-	FfmpegStat[pos].EndTime = time.Now()
-	duration := fmt.Sprintf("%s", FfmpegStat[pos].EndTime.Sub(FfmpegStat[pos].StartTime).String())
+	FfmpegStats[pos].EndTime = time.Now()
+	duration := fmt.Sprintf("%s", FfmpegStats[pos].EndTime.Sub(FfmpegStats[pos].StartTime).String())
 	fmt.Printf("   > Duration %s \n", duration)
 
 	if err != nil {
 		fmt.Println("err:", errb.String())
 		log.Println(err)
-		FfmpegStat[pos].Status = "Error"
+		FfmpegStats[pos].Status = "Error"
 		return
 	}
 
-	FfmpegStat[pos].Status = "Success!"
+	FfmpegStats[pos].Status = "Success!"
 
 	// If set to delete file, bin it
 	if remove {

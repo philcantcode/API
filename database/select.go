@@ -11,8 +11,8 @@ type Playback struct {
 	ID        int
 	Playtime  int
 	Modified  int
-	Locations []utils.File
-	PrefLoc   int // The preferred [pos] for Locations
+	Locations []utils.File // All of the matching files on the disk
+	PrefLoc   int          // The preferred [pos] for Locations
 }
 
 // SelectRootDirectories returns all the locations monitored on disk
