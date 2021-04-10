@@ -23,7 +23,7 @@ const (
 	colorWhite  = "\033[37m"
 )
 
-const printError = true
+const printError = false
 
 // Fancy log function
 func Error(info string, err error) {

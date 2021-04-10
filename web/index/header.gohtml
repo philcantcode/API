@@ -1,0 +1,80 @@
+{{define "header"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Media Player V4.0</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Oliver & Phil">
+    <meta name="generator" content="Hugo 0.82.0">
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+
+    <script src="https://use.fontawesome.com/9fff5e4b64.js"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">    
+    <link href="/index/dashboard.css" rel="stylesheet">
+    <link href="/index/greyson.css" rel="stylesheet">
+
+    <link rel="apple-touch-icon" href="/icons/favicon.ico" sizes="180x180">
+    <link rel="icon" href="/icons/favicon-32x32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16x16.png" sizes="16x16" type="image/png">
+    <meta name="theme-color" content="#7952b3">
+</head>
+
+<body>
+  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">{{.PageTitle}}</a>
+    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">
+    <ul class="navbar-nav px-3">
+      <li class="nav-item text-nowrap">
+        <a class="nav-link" href="#">Search</a>
+      </li>
+    </ul>
+  </header>
+  
+  <div class="container-fluid">
+    <div class="row">
+      <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+        <div class="sidebar-sticky pt-3">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link" href="/player">
+                <span class="fa fa-youtube-play"></span>
+                Player
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/player/remote">
+                <span class="fa fa-dashboard"></span>
+                Remote Control
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/player/manage">
+                <span class="fa fa-gears"></span>
+                Manager
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+  
+      <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1 class="h2">{{.PageDescription}}</h1>
+          <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+            </div>
+          </div>
+        </div>  
+
+{{end}}

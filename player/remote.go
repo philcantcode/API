@@ -4,15 +4,13 @@ import (
 	"net/http"
 
 	"github.com/philcantcode/goApi/database"
+	"github.com/philcantcode/goApi/index"
 	"github.com/philcantcode/goApi/utils"
 )
 
-var remotePage = page{
+var remotePage = index.HTMLContents{
 	PageTitle:       "Remote Control",
 	PageDescription: "Control the playback on other screens",
-	PreviousPath:    "Player",
-	PreviousPathURL: "/player",
-	CurrentPath:     "Remote",
 }
 
 type LoadedMedia struct {
@@ -22,7 +20,7 @@ type LoadedMedia struct {
 
 // RemotePage handles the remote controller
 func RemotePage(w http.ResponseWriter, r *http.Request) {
-	reload()
+	index.Reload()
 
 	remoteID := r.FormValue("id")
 
@@ -49,5 +47,5 @@ func RemotePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	remotePage.Contents = data
-	templates.ExecuteTemplate(w, "playerRemote", remotePage)
+	index.TemplateLoader.ExecuteTemplate(w, "playerRemote", remotePage)
 }

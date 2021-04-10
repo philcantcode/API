@@ -7,15 +7,13 @@ import (
 	"time"
 
 	"github.com/philcantcode/goApi/database"
+	"github.com/philcantcode/goApi/index"
 	"github.com/philcantcode/goApi/utils"
 )
 
-var playerPage = page{
+var playerPage = index.HTMLContents{
 	PageTitle:       "Player",
 	PageDescription: "Local Player",
-	PreviousPath:    "Home",
-	PreviousPathURL: "/",
-	CurrentPath:     "player",
 }
 
 type RecentlyPlayed struct {
@@ -25,7 +23,7 @@ type RecentlyPlayed struct {
 
 // PlayerPage handles the /player request
 func PlayerPage(w http.ResponseWriter, r *http.Request) {
-	reload()
+	index.Reload()
 
 	openParam := r.FormValue("open")
 	playParam := r.FormValue("play")
@@ -82,7 +80,7 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	playerPage.Contents = data
-	templates.ExecuteTemplate(w, "player", playerPage)
+	index.TemplateLoader.ExecuteTemplate(w, "player", playerPage)
 }
 
 // Returns the media last changed by the database (e.g., played)

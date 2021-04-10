@@ -1,0 +1,219 @@
+{{define "playerManage"}}
+{{template "header" . }}
+  
+<div class="row buffer-top">
+  <div class="col-12">
+      <h3>Choose a drive to start tracking</h3>
+  </div>
+
+  <div class="list-group col-4 pull-left">
+    {{range .Contents.Drives}}
+        <a href="?path={{ .AbsPath }}" class="list-group-item list-group-item-action">{{ .AbsPath }} Drive</a>
+    {{end}}
+
+    <div class="btn-group mt-auto pull-left" role="group">
+          <button id="continue-watching" type="button" class="btn btn-outline-dark dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Stop Tracking
+          </button>
+          
+          <div class="dropdown-menu" aria-labelledby="continue-watching">
+            {{range .Contents.TrackedFolders}}
+                <a class="dropdown-item" href="?untrack={{ .AbsPath }}">{{ .AbsPath }}</a>
+            {{end}}
+          </div>
+      </div>
+  </div>  
+
+  <div class="list-group col-8 pull-left">
+    {{range .Contents.SubFolders}}
+        <a href="?path={{ .AbsPath }}" class="list-group-item list-group-item-action">{{ .AbsPath }}</a>
+    {{end}}
+
+    {{ if .Contents.Selected }}
+       <a href="?track={{ .Contents.Selected }}" class="btn btn-outline-dark pull-right">Track: {{.Contents.Selected}}</a>
+      {{ end }}
+  </div>
+</div>
+
+<div class="row buffer-top">
+  <h3 class="box-title">Session FFMPEG File Conversion</h3>
+  <h6 class="col-12">FFMPEG converts any movie files in an incompatible codec format to be playable in the browser</h6>
+
+  <button id="enable-fast-ffmpeg" type="button" class="btn btn-success">Enable Fast Conversion</button> 
+  <button id="enable-slow-ffmpeg" type="button" class="btn btn-warning">Enable Slow Conversion</button>
+  <button id="disable-all-ffmpeg" type="button" class="btn btn-danger">Disable Conversion</button> 
+
+  <table class="table table-sm">
+      <thead class="thead-dark">
+        <tr>
+            <th>Media</th>
+            <th>Duration</th>
+            <th>Status</th>
+        </tr>
+      </thead>
+  <tbody>
+      {{range .Contents.FfmpegMetrics}}
+      <tr style="margin-bottom:5px; border-bottom:none;">
+          <td rowspan="2" style="word-break:break-all;">{{ .File.AbsPath }}</td>
+          <td>{{ .NowTime }}</td>
+          <td>{{ .Status }}</td>
+      </tr>
+      <tr style="border-top:none;">
+          <td style="border-top:none;" colspan="2">
+                <a target="_blank" href="/player?play={{ .File.Path }}{{ .File.FileName }}.mp4" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</a> 
+                <button data-path="{{ .File.Path }}{{ .File.FileName }}.mp4" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Restore</button>   
+          </td>
+      </tr>
+      {{end}}
+  </tbody>
+  </table>
+</div>
+
+<div class="row buffer-top">
+  <h3>FFMPEG File Conversion History</h3>
+  <h6 class="col-12">Past conversions in the database</h6>
+
+  <table class="table table-sm">
+    <thead class="thead-dark">
+    <tr>
+      <th>Media</th>
+      <th>Actions</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+  {{range .Contents.FfmpegHistory}}
+    <tr style="margin-bottom:5px; border-bottom:none;">
+      <td style="word-break:break-all;">{{ .Path.AbsPath }}</td>
+      <td style="border-top:none;">
+        <a target="_blank" href="/player?play={{ .Path.AbsPath }}" type="button" class="play-ffmpeg btn btn-primary btn-sm" style="margin-right:20px;">Play</a>   
+      </td>
+      <td style="border-top:none;">
+        <button data-path="{{ .Path.AbsPath }}" type="button" class="revert-ffmpeg btn btn-danger btn-sm">Restore</button>   
+      </td>
+    </tr>
+    </tr>
+  {{end}}
+</tbody>
+</table> 
+</div>
+
+
+
+
+
+    
+    
+
+   
+
+<script type="text/javascript">
+$("#enable-fast-ffmpeg").on("click", function(e)
+{
+  $.ajax({
+      url: "/player/ffmpeg/control",
+      type: "get",
+      data: { 
+        type: "fast"
+      },
+      success: function(response) {
+
+      },
+      error: function(xhr) {
+        
+      }
+  });    
+});
+
+$("#enable-slow-ffmpeg").on("click", function(e)
+{
+  $.ajax({
+      url: "/player/ffmpeg/control",
+      type: "get",
+      data: { 
+        type: "slow"
+      },
+      success: function(response) {
+
+      },
+      error: function(xhr) {
+
+      }
+  });
+});
+
+$("#disable-all-ffmpeg").on("click", function(e)
+{
+  $.ajax({
+      url: "/player/ffmpeg/control",
+      type: "get",
+      data: { 
+        type: "disable"
+      },
+      success: function(response) {
+        
+      },
+      error: function(xhr) {
+        
+      }
+  });
+});
+
+$(".play-ffmpeg").on("click", function(e)
+{
+    var mp4Path = $(this).attr("data-path");
+
+    $.ajax({
+        url: "/player/ffmpeg/play",
+        type: "get",
+        data: { 
+          path: mp4Path
+        },
+        success: function(response) {
+          
+        },
+        error: function(xhr) {
+         
+        }
+    });
+});
+
+$(".revert-ffmpeg").on("click", function(e)
+{
+    var mp4Path = $(this).attr("data-path");
+
+    $.ajax({
+        url: "/player/ffmpeg/revert",
+        type: "get",
+        data: { 
+          path: mp4Path
+        },
+        success: function(response) {
+          switch (response) {
+            case "Not Found":
+              alert("File Processing Not Complete Yet");
+              break;
+            case "Move Error":
+              alert("Error when moving file");
+              break;
+            case "Delete Error":
+              alert("Error when deleting file");
+              break;
+            case "Archive File Not Found":
+              alert("The archive path couldn't be found");
+              break;
+          }
+
+          console.log("FFMPEG Response: " + response);
+        },
+        error: function(xhr) {
+         
+        }
+    });
+
+    $(this).closest('tr').remove();
+});
+
+</script>
+{{template "footer" . }}
+{{end}}

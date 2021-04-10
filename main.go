@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/philcantcode/goApi/index"
 	"github.com/philcantcode/goApi/player"
 	"github.com/philcantcode/goApi/utils"
 )
@@ -17,13 +18,11 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", player.IndexPage)
-	router.HandleFunc("/favicon.ico", player.FavIcon)
+	router.HandleFunc("/", index.IndexPage)
 
 	router.HandleFunc("/player", player.PlayerPage)
 	router.HandleFunc("/player/remote", player.RemotePage)
 	router.HandleFunc("/player/manage", player.ManagePage)
-
 	router.HandleFunc("/player/ffmpeg/revert", player.RestoreFfmpeg)
 	router.HandleFunc("/player/ffmpeg/play", player.PlayFfmpeg)
 	router.HandleFunc("/player/ffmpeg/control", player.ControlFfmpeg)

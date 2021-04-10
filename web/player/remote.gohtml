@@ -1,0 +1,117 @@
+{{define "playerRemote"}}
+{{template "header" . }}
+
+<div class="row buffer-top">
+    <h3 class="box-title">Loaded Media</h3>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Title</th>
+                <th scope="col">Remote</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Contents.LoadedMedia}}
+              <tr>
+                  <th scope="row">{{ .RemoteID }}</th>
+                  <td id="{{ .RemoteID }}-name">{{ (index .Playback.Locations 0).PrintName }}</td>
+                  <td><a href="/player/remote?id={{ .RemoteID }}" class="btn btn-primary">Open Remote</a></td>
+              </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+{{ if .Contents.RemoteID }}
+<div class="row buffer-top">
+  <h3 id="currently-watching col-12">{{ (index .Contents.ControllingMedia.Playback.Locations 0).PrintName }}</h3>  
+      <button class="btn btn-lg btn-primary player-play col-6">Play</button>
+      <button class="btn btn-lg btn-primary player-pause col-5">Pause</button>
+      <button class="btn btn-lg btn-primary player-rewind col-6">Rewind</button>
+      <button class="btn btn-lg btn-primary player-fastforward col-5">FastForward</button>
+      <button class="btn btn-lg btn-danger player-skip col-11">Skip</button>
+</div>
+
+<script type="text/javascript">
+
+  var wsurl = "{{ .Contents.IP }}:{{ .Contents.Port }}";
+  var id = "{{ .Contents.RemoteID }}";
+
+  socket = new WebSocket("ws://" + wsurl + "/player/ws-setup/remote/{{ .Contents.RemoteID }}");
+
+  // Incoming Messages back to the remote
+  socket.onmessage = function(msg) 
+  {
+      if (msg.data.length > 0)
+      {
+          var response = JSON.parse(msg.data);
+          console.log("Remote Received: " + msg.data);
+
+          switch(response.Key) 
+          {
+              case "change-media":
+                  var prefLoc = parseInt(response.Playback.PrefLoc);
+                  $("#currently-watching").text(response.Playback.Locations[prefLoc].PrintName);
+                  $("#{{ .Contents.RemoteID }}-name").text(response.Playback.Locations[prefLoc].PrintName);
+                  break;
+          }
+      }
+  };
+
+  $(".player-play").on("click", function(e)
+  {
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "play",
+          Value: ""
+      }));
+  });
+
+  $(".player-pause").on("click", function(e)
+  {
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "pause",
+          Value: ""
+      }));
+  });
+
+  $(".player-rewind").on("click", function(e)
+  {
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "rewind",
+          Value: ""
+      }));
+  });
+
+  $(".player-fastforward").on("click", function(e)
+  {
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "fastforward",
+          Value: ""
+      }));
+  });
+
+  $(".player-skip").on("click", function(e)
+  {
+      socket.send(JSON.stringify(
+      {
+          Type: "control",
+          Key: "skip",
+          Value: ""
+      }));
+  });
+
+</script>
+{{end}}
+
+{{template "footer" . }}
+{{end}}

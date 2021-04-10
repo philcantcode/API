@@ -6,20 +6,18 @@ import (
 	"os"
 
 	"github.com/philcantcode/goApi/database"
+	"github.com/philcantcode/goApi/index"
 	"github.com/philcantcode/goApi/utils"
 )
 
-var managePage = page{
+var pageContents = index.HTMLContents{
 	PageTitle:       "Manage Local Files",
-	PageDescription: "Manage Local Files",
-	PreviousPath:    "Player",
-	PreviousPathURL: "player",
-	CurrentPath:     "player/manage",
+	PageDescription: "Manage Local Player Files",
 }
 
 // ManagePage handles the /player/manage request
 func ManagePage(w http.ResponseWriter, r *http.Request) {
-	reload()
+	index.Reload()
 
 	pathParam := r.FormValue("path")
 	trackParam := r.FormValue("track")
@@ -52,8 +50,8 @@ func ManagePage(w http.ResponseWriter, r *http.Request) {
 		database.DeleteRootDirectory(untrackParam)
 	}
 
-	managePage.Contents = data
-	err := templates.ExecuteTemplate(w, "playerManage", managePage)
+	pageContents.Contents = data
+	err := index.TemplateLoader.ExecuteTemplate(w, "playerManage", pageContents)
 
 	if err != nil {
 		fmt.Printf("%s\n", err)
