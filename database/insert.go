@@ -35,8 +35,6 @@ func InsertMediaPlayback() int {
 	return int(insertID)
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
 // Adds a root directory to track (G:\\, F:\\, etc)
 func InsertRootDirectory(folder string) {
 	stmt, err := con.Prepare("INSERT INTO `RootDirectories` (path) VALUES (?);")

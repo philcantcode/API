@@ -12,6 +12,9 @@ import (
 
 var alphaNumFilter *regexp.Regexp
 
+const winSep = "\\"
+const macSep = "/"
+
 func init() {
 	var err error
 	alphaNumFilter, err = regexp.Compile("[^A-Za-z0-9]+")
@@ -87,6 +90,13 @@ func IsLegalPath(path string) bool {
 // ProcessFile extracts the file name from a path
 func ProcessFile(path string) File {
 	sep := string(filepath.Separator)
+
+	if strings.Contains(path, winSep) {
+		sep = winSep
+	} else if strings.Contains(path, macSep) {
+		sep = macSep
+	}
+
 	file := File{}
 
 	if len(path) == 0 {

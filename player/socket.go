@@ -139,6 +139,7 @@ func playerSocket(ws *websocket.Conn, devID string) {
 
 		cmd := command{}
 		err = json.Unmarshal(msg, &cmd)
+		utils.Error("Error opening JSON", err)
 
 		players[devID].playCH <- cmd
 		fmt.Printf("Device %s (player) -> %+v\n", devID, cmd)
@@ -161,6 +162,7 @@ func remoteSocket(ws *websocket.Conn, devID string) {
 
 		cmd := command{}
 		err = json.Unmarshal(msg, &cmd)
+		utils.Error("Error opening JSON", err)
 
 		players[devID].playCH <- cmd
 		players[devID].remoteCH <- cmd
@@ -194,7 +196,7 @@ func controls(cmd command, devID string) {
 				Value:    "",
 				Playback: players[devID].playback})
 
-		sendToPlayers(response, devID)
+		SendToPlayers(response, devID)
 		fmt.Printf("Device %s (MediaPlayback) change-media -> %d\n", devID, players[devID].playback.ID)
 	case "play":
 		response := jsonResponse(
@@ -204,7 +206,7 @@ func controls(cmd command, devID string) {
 				Value:    "",
 				Playback: players[devID].playback})
 
-		sendToPlayers(response, devID)
+		SendToPlayers(response, devID)
 	case "pause":
 		response := jsonResponse(
 			Response{
@@ -213,7 +215,7 @@ func controls(cmd command, devID string) {
 				Value:    "",
 				Playback: players[devID].playback})
 
-		sendToPlayers(response, devID)
+		SendToPlayers(response, devID)
 	case "rewind":
 		response := jsonResponse(
 			Response{
@@ -222,7 +224,7 @@ func controls(cmd command, devID string) {
 				Value:    "10",
 				Playback: players[devID].playback})
 
-		sendToPlayers(response, devID)
+		SendToPlayers(response, devID)
 	case "fastforward":
 		response := jsonResponse(
 			Response{
@@ -231,7 +233,7 @@ func controls(cmd command, devID string) {
 				Value:    "10",
 				Playback: players[devID].playback})
 
-		sendToPlayers(response, devID)
+		SendToPlayers(response, devID)
 	case "skip": // Find next ID, send to remotes + players, change channel ID, update details
 		prefLoc := players[devID].playback.PrefLoc
 		currentMedia := players[devID].playback.Locations[prefLoc]
@@ -239,7 +241,7 @@ func controls(cmd command, devID string) {
 
 		response := jsonResponse(
 			Response{
-				Type:     "update",
+				Type:     "error",
 				Key:      "change-media-fail",
 				Value:    "",
 				Playback: database.Playback{}})
@@ -264,8 +266,8 @@ func controls(cmd command, devID string) {
 					Playback: nextPlayback})
 		}
 
-		sendToPlayers(response, devID)
-		sendToRemotes(response, devID)
+		SendToPlayers(response, devID)
+		SendToRemotes(response, devID)
 	default:
 		fmt.Printf("Command: %+v", cmd)
 		utils.ErrorC("Command Unknown")
@@ -287,14 +289,14 @@ func jsonResponse(r Response) string {
 	return string(jsonStruct)
 }
 
-func sendToPlayers(command string, devID string) {
+func SendToPlayers(command string, devID string) {
 	for i := 0; i < len(players[devID].players); i++ {
 		err := players[devID].players[i].WriteMessage(1, []byte(fmt.Sprintf(command)))
 		utils.Error("Web socket closed", err)
 	}
 }
 
-func sendToRemotes(command string, devID string) {
+func SendToRemotes(command string, devID string) {
 	for i := 0; i < len(players[devID].remotes); i++ {
 		err := players[devID].remotes[i].WriteMessage(1, []byte(fmt.Sprintf(command)))
 		utils.Error("Web socket closed", err)

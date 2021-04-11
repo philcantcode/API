@@ -26,7 +26,7 @@
 
 {{ if .Contents.RemoteID }}
 <div class="row buffer-top">
-  <h3 id="currently-watching col-12">{{ (index .Contents.ControllingMedia.Playback.Locations 0).PrintName }}</h3>  
+  <h3 id="currently-watching col-md-12">{{ (index .Contents.ControllingMedia.Playback.Locations 0).PrintName }}</h3>  
       <button class="btn btn-lg btn-primary player-play col-6">Play</button>
       <button class="btn btn-lg btn-primary player-pause col-5">Pause</button>
       <button class="btn btn-lg btn-primary player-rewind col-6">Rewind</button>

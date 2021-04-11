@@ -35,7 +35,7 @@ func main() {
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))
-	err := http.ListenAndServe(utils.Host+":"+utils.Port, router)
+	err := http.ListenAndServe(":"+utils.Port, router) //
 
 	if err != nil {
 		log.Fatal("Error Starting the HTTP Server :", err)

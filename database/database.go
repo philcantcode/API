@@ -92,7 +92,7 @@ func FindOrCreatePlayback(path string) Playback {
 
 	if mediaPlaybackID != -1 {
 		playback := SelectMediaPlayback_ByID(mediaPlaybackID)
-		playback.PrefLoc = GetPreferredLocation(playback)
+		playback.PrefLoc, _ = GetPreferredLocation(playback)
 		return playback
 	}
 
@@ -112,22 +112,21 @@ func FindOrCreatePlayback(path string) Playback {
 	InsertMediaHash(hash, path, mediaPlaybackID)
 
 	playback := SelectMediaPlayback_ByID(mediaPlaybackID)
-	playback.PrefLoc = GetPreferredLocation(playback)
+	playback.PrefLoc, _ = GetPreferredLocation(playback)
 
 	return playback
 }
 
 // Returns the preferred (loaded) media location where there are
 // multiple files on disk
-func GetPreferredLocation(playback Playback) int {
+func GetPreferredLocation(playback Playback) (int, error) {
 	for i := 0; i < len(playback.Locations); i++ {
 		if playback.Locations[i].Exists {
-			return i
+			return i, nil
 		}
 	}
 
-	utils.ErrorC("Couldn't GetPreferredLocation, no file doesn't exist on disk")
-	return -1
+	return -1, fmt.Errorf("no matching file exists on disk")
 }
 
 func DatabaseStats() {

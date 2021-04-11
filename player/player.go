@@ -96,51 +96,49 @@ func getRecentlyWatched() []RecentlyPlayed {
 
 		// For each utils.File location
 		for _, location := range playback.Locations {
-			if location.Exists { // TODO: Rmove + fix me
-				// Loop over each token in the path
-				for i := 0; i < len(location.PathTokens); i++ {
-					nthToken := location.PathTokens[i]
+			// Loop over each token in the path
+			for i := 0; i < len(location.PathTokens); i++ {
+				nthToken := location.PathTokens[i]
 
-					// Handles media ordered by category
-					if strings.Contains(nthToken, "Category - ") && len(location.PathTokens) > i+1 {
-						seriesName := location.PathTokens[i+1] // Token after category
-						_, found := recent[seriesName]         // Already catalogued
+				// Handles media ordered by category
+				if strings.Contains(nthToken, "Category - ") && len(location.PathTokens) > i+1 {
+					seriesName := location.PathTokens[i+1] // Token after category
+					_, found := recent[seriesName]         // Already catalogued
 
-						if !found { // Add to recent list
+					if !found { // Add to recent list
+						recent[seriesName] = playback
+						locations[seriesName] = location
+						isIndexedByCategory = true
+					} else { // Overwrite if bigger
+						if playback.Modified >= recent[seriesName].Modified {
 							recent[seriesName] = playback
 							locations[seriesName] = location
 							isIndexedByCategory = true
-						} else { // Overwrite if bigger
-							if playback.Modified >= recent[seriesName].Modified {
-								recent[seriesName] = playback
-								locations[seriesName] = location
-								isIndexedByCategory = true
-							}
 						}
 					}
 				}
+			}
 
-				// If the media isn't ordered by a category
-				if !isIndexedByCategory {
-					folderName := location.PathTokens[len(location.PathTokens)-2]
+			// If the media isn't ordered by a category
+			if !isIndexedByCategory {
+				folderName := location.PathTokens[len(location.PathTokens)-2]
 
-					for _, dir := range database.SelectRootDirectories() {
+				for _, dir := range database.SelectRootDirectories() {
 
-						if dir.Path == location.Path {
-							folderName = location.PathTokens[len(location.PathTokens)-1] // File name
-							break
-						}
+					if dir.Path == location.Path {
+						folderName = location.PathTokens[len(location.PathTokens)-1] // File name
+						break
 					}
-					_, titleFound := recent[folderName]
+				}
+				_, titleFound := recent[folderName]
 
-					if !titleFound {
+				if !titleFound {
+					recent[folderName] = playback
+					locations[folderName] = location
+				} else {
+					if playback.Modified > recent[folderName].Modified {
 						recent[folderName] = playback
 						locations[folderName] = location
-					} else {
-						if playback.Modified > recent[folderName].Modified {
-							recent[folderName] = playback
-							locations[folderName] = location
-						}
 					}
 				}
 			}
@@ -176,14 +174,24 @@ func getRecentlyWatched() []RecentlyPlayed {
 // LoadMedia takes a file or ID GET param, then loads the media
 func LoadMedia(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.FormValue("id"))
+	devID := r.FormValue("devID")
 	utils.Error("Couldn't convert LoadMedia ID to integer", err)
 
 	// Find by ID - the ID is guarenteed to already exist
 	playback := database.SelectMediaPlayback_ByID(id)
-	playback.PrefLoc = database.GetPreferredLocation(playback)
-	http.ServeFile(w, r, playback.Locations[playback.PrefLoc].AbsPath)
-}
+	playback.PrefLoc, err = database.GetPreferredLocation(playback)
 
-func LoadRecentlyPlayed(w http.ResponseWriter, r *http.Request) {
-	// ret: recently palyed
+	if err == nil {
+		http.ServeFile(w, r, playback.Locations[playback.PrefLoc].AbsPath)
+		return
+	}
+
+	response := jsonResponse(
+		Response{
+			Type:     "error",
+			Key:      "no-media-on-disk",
+			Value:    "",
+			Playback: database.Playback{}})
+
+	SendToPlayers(response, devID)
 }

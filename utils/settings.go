@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 )
 
 var FilePath string
@@ -16,6 +17,8 @@ func init() {
 	Host = GetOutboundIP().String()
 
 	fmt.Printf("Server Launched at: http://%s:%s\n", Host, Port)
+	fmt.Printf("Server Launched at: http://%s.local:%s\n", GetHostname(), Port)
+
 }
 
 // GetOutboundIP Gets preferred outbound ip of this machine
@@ -29,4 +32,12 @@ func GetOutboundIP() net.IP {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
 	return localAddr.IP
+}
+
+// GetHostname returns the computer host name
+func GetHostname() string {
+	hostName, err := os.Hostname()
+	Error("Couldn't get computer hostname", err)
+
+	return hostName
 }
