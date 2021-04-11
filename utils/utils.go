@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -88,7 +90,11 @@ func MD5Hash(filePath string) (string, error) {
 	return returnMD5String, nil
 }
 
-func RemoveIndex(s []string, index int) []string {
+func RemoveStrIndex(s []string, index int) []string {
+	return append(s[:index], s[index+1:]...)
+}
+
+func RemoveSocketIndex(s []*websocket.Conn, index int) []*websocket.Conn {
 	return append(s[:index], s[index+1:]...)
 }
 

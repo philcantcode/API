@@ -123,6 +123,7 @@ func processor() {
 	}
 }
 
+// The messages come in from the player here
 func playerSocket(ws *websocket.Conn, devID string) {
 	for {
 		_, msg, err := ws.ReadMessage()
@@ -146,14 +147,16 @@ func playerSocket(ws *websocket.Conn, devID string) {
 	}
 }
 
+// The messages come in from the remote here
 func remoteSocket(ws *websocket.Conn, devID string) {
 	for {
 		_, msg, err := ws.ReadMessage()
 
+		// Fix error where if you refresh remote, it kills the whole socket
 		if err != nil {
 			if err.Error() == "websocket: close 1001 (going away)" {
-				fmt.Printf("Device (%s) closed websocket\n", devID)
-				delete(players, devID)
+				fmt.Printf("Device (%s) disconnected from websocket\n", devID)
+				ws.Close()
 				return
 			}
 
@@ -165,7 +168,6 @@ func remoteSocket(ws *websocket.Conn, devID string) {
 		utils.Error("Error opening JSON", err)
 
 		players[devID].playCH <- cmd
-		players[devID].remoteCH <- cmd
 		fmt.Printf("Device %s (remote) -> %+v\n", devID, cmd)
 	}
 }
@@ -212,6 +214,15 @@ func controls(cmd command, devID string) {
 			Response{
 				Type:     "command",
 				Key:      "pause",
+				Value:    "",
+				Playback: players[devID].playback})
+
+		SendToPlayers(response, devID)
+	case "toggle":
+		response := jsonResponse(
+			Response{
+				Type:     "command",
+				Key:      "toggle",
 				Value:    "",
 				Playback: players[devID].playback})
 
@@ -279,6 +290,16 @@ func status(cmd command, devID string) {
 	case "playback": // Update media playback
 		playTime, _ := strconv.ParseFloat(cmd.Value, 64)
 		database.UpdatePlaytime(players[devID].playback.ID, int(playTime))
+	case "ping":
+		response := jsonResponse(
+			Response{
+				Type:     "status",
+				Key:      "pong",
+				Value:    "",
+				Playback: database.Playback{}})
+
+		SendToPlayers(response, devID)
+		SendToRemotes(response, devID)
 	}
 }
 
@@ -291,14 +312,20 @@ func jsonResponse(r Response) string {
 
 func SendToPlayers(command string, devID string) {
 	for i := 0; i < len(players[devID].players); i++ {
-		err := players[devID].players[i].WriteMessage(1, []byte(fmt.Sprintf(command)))
+		err := players[devID].players[i].WriteMessage(1, []byte(command))
 		utils.Error("Web socket closed", err)
 	}
 }
 
 func SendToRemotes(command string, devID string) {
 	for i := 0; i < len(players[devID].remotes); i++ {
-		err := players[devID].remotes[i].WriteMessage(1, []byte(fmt.Sprintf(command)))
-		utils.Error("Web socket closed", err)
+		err := players[devID].remotes[i].WriteMessage(1, []byte(command))
+
+		// Clean up remote stocket if the user refreshes
+		if err != nil {
+			newPlayers := players[devID]
+			newPlayers.remotes = utils.RemoveSocketIndex(players[devID].remotes, i)
+			players[devID] = newPlayers
+		}
 	}
 }

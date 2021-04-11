@@ -40,10 +40,10 @@ type FfmpegMetrics struct {
 
 func (p *FfmpegMetrics) NowTime() string {
 	if p.EndTime.IsZero() {
-		return fmt.Sprintf("%s", time.Since(p.StartTime).String())
+		return time.Since(p.StartTime).String()
 	}
 
-	return fmt.Sprintf("%s", p.EndTime.Sub(p.StartTime).String())
+	return p.EndTime.Sub(p.StartTime).String()
 }
 
 func init() {
@@ -114,11 +114,11 @@ func convertWalkFunc(path string, info os.FileInfo, err error) error {
 // drives to MP4 by switching the container or changing
 // the codec
 func ConvertToMP4(path string, stdout bool, remove bool) {
-	if DisableFfmpeg == true {
+	if DisableFfmpeg {
 		for {
 			time.Sleep(30 * time.Second)
 
-			if DisableFfmpeg == false {
+			if !DisableFfmpeg {
 				break
 			}
 		}
@@ -198,7 +198,7 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 
 	// Calculate duration of conversion
 	FfmpegStats[pos].EndTime = time.Now()
-	duration := fmt.Sprintf("%s", FfmpegStats[pos].EndTime.Sub(FfmpegStats[pos].StartTime).String())
+	duration := FfmpegStats[pos].EndTime.Sub(FfmpegStats[pos].StartTime).String()
 	fmt.Printf("   > Duration %s \n", duration)
 
 	if err != nil {

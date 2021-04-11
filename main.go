@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/philcantcode/goApi/index"
+	"github.com/philcantcode/goApi/notes"
 	"github.com/philcantcode/goApi/player"
 	"github.com/philcantcode/goApi/utils"
 )
@@ -26,12 +27,10 @@ func main() {
 	router.HandleFunc("/player/ffmpeg/revert", player.RestoreFfmpeg)
 	router.HandleFunc("/player/ffmpeg/play", player.PlayFfmpeg)
 	router.HandleFunc("/player/ffmpeg/control", player.ControlFfmpeg)
-
-	// {pageType} = player/remote
-	// {devID} = jIAakjdfI device ID
-	// {medID} = 5 media ID form playback
 	router.HandleFunc("/player/ws-setup/{pageType}/{devID}", player.SocketSetup)
 	router.HandleFunc("/player/load", player.LoadMedia)
+
+	router.HandleFunc("/notes", notes.NotesPage)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))

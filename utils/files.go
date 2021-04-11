@@ -128,7 +128,7 @@ func ProcessFile(path string) File {
 	// Reclice any file paths that are ''
 	for i := 0; i < len(file.PathTokens); i++ {
 		if file.PathTokens[i] == "" {
-			file.PathTokens = RemoveIndex(file.PathTokens, i)
+			file.PathTokens = RemoveStrIndex(file.PathTokens, i)
 		}
 	}
 

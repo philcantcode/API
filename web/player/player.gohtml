@@ -3,9 +3,9 @@
 
 {{ if .Contents.PlayParam.AbsPath }}
 <div class="row">
-  <h3 col-12>Currently Watching <span id="currently-watching">{{ .Contents.PlayParam.PrintName }}</span></h3>
+  <h3 id="currently-watching">{{ .Contents.PlayParam.PrintName }}</h3>
 
-  <a href="/player/remote?id={{ .Contents.DeviceID }}" type="button" target="_blank" class="col-4 pull-right btn button-sm btn-warning">
+  <a href="/player/remote?id={{ .Contents.DeviceID }}" type="button" target="_blank" class="ml-auto btn btn-sm btn-warning">
     Device ID <span class="badge badge-light">{{ .Contents.DeviceID }}</span>
   </a>
 
@@ -85,6 +85,16 @@
 
       window.setInterval(function()
       { 
+        socket.send(JSON.stringify({
+                Type: "status",
+                Key: "ping",
+                Value: ""
+            }));
+          
+      }, 30000);
+
+      window.setInterval(function()
+      { 
           if (!player.paused && !pauseStatusPlayback)
           {
               console.log("status:playback:" + player.currentTime);
@@ -95,9 +105,6 @@
               }));
           }
       }, 10000);
-
-      $("#media-list").click();
-      $("#continue-watching").click();
   };
 
   // Incoming messages back to the player
@@ -116,18 +123,34 @@
               case "pause":
                     player.pause();
                     break;
+              case "toggle":
+                    if (player.paused) {
+                        player.play();
+                    }
+                    else {
+                        player.pause();
+                    }
+                    break;
               case "rewind":
-                    fastforward(-parseInt(val));
+                    fastforward(-10);
                     break;
               case "fastforward":
-                    fastforward(parseInt(val));
+                    fastforward(10);
                     break;
               case "change-media":
                     changeMedia(response.Playback.ID, response.Playback.Playtime);
                     var prefLoc = parseInt(response.Playback.PrefLoc);
+                    var ext = response.Playback.Locations[prefLoc].Ext;
                     $("#currently-watching").text(response.Playback.Locations[prefLoc].PrintName);
                     loadedMedia = response.Playback.Locations[prefLoc].AbsPath;
                     console.log("Loaded Media: " + loadedMedia);
+
+                    if (ext != ".mp4") 
+                    {
+                        $("#playback-error").text("Media is in " + ext + " format.");
+                        $("#error-alert").show();
+                    }
+
                     break;
               case "change-media-fail":
                     $("#playback-error").text("Couldn't change to the next media, none found in folder.");
@@ -159,13 +182,23 @@
   {
       switch(e.key)
       { 
-          case "Enter":
-                socket.send(JSON.stringify({
-                    Type: "control",
-                    Key: "skip",
-                    Value: ""
-                }));
-              break;
+        case "Enter":
+        e.preventDefault();  
+        socket.send(JSON.stringify({
+            Type: "control",
+            Key: "skip",
+            Value: ""
+        }));
+        break;
+        case " ":
+        e.preventDefault();
+        if (player.paused) {
+            player.play();
+        }
+        else {
+            player.pause();
+        }
+        break;
       } 
   });
 

@@ -25,13 +25,23 @@
 </div>
 
 {{ if .Contents.RemoteID }}
-<div class="row buffer-top">
-  <h3 id="currently-watching col-md-12">{{ (index .Contents.ControllingMedia.Playback.Locations 0).PrintName }}</h3>  
-      <button class="btn btn-lg btn-primary player-play col-6">Play</button>
-      <button class="btn btn-lg btn-primary player-pause col-5">Pause</button>
-      <button class="btn btn-lg btn-primary player-rewind col-6">Rewind</button>
-      <button class="btn btn-lg btn-primary player-fastforward col-5">FastForward</button>
-      <button class="btn btn-lg btn-danger player-skip col-11">Skip</button>
+<div class="row buffer-top"> 
+
+    <div class="d-flex align-items-center">
+        <div class="spinner-grow text-success" role="status" aria-hidden="true"></div>
+        <h3 id="currently-watching col-12">{{ (index .Contents.ControllingMedia.Playback.Locations 0).PrintName }} </h3>
+    </div>
+
+  <div class="col-12">
+    <button id="player-toggle" style="font-size: 200px;" class="col-12 fa fa-play-circle text-success btn btn-lg"></button>
+
+    <div class="btn-group col-12" role="group" aria-label="Basic example">
+        <button id="player-rewind" style="font-size: 100px;" class="fa fa-fast-backward text-success btn btn-outline-success btn-lg"></button>
+        <button id="player-fastforward" style="font-size: 100px;" class="fa fa-fast-forward text-success btn btn-lg btn-outline-success"></button>
+    </div> 
+
+    <button id="player-skip" style="font-size: 20px; margin-top:20px;" class="col-12 btn btn-danger btn-lg"> Skip</button>
+  </div>
 </div>
 
 <script type="text/javascript">
@@ -60,27 +70,17 @@
       }
   };
 
-  $(".player-play").on("click", function(e)
+  $("#player-toggle").on("click", function(e)
   {
       socket.send(JSON.stringify(
       {
           Type: "control",
-          Key: "play",
+          Key: "toggle",
           Value: ""
       }));
   });
 
-  $(".player-pause").on("click", function(e)
-  {
-      socket.send(JSON.stringify(
-      {
-          Type: "control",
-          Key: "pause",
-          Value: ""
-      }));
-  });
-
-  $(".player-rewind").on("click", function(e)
+  $("#player-rewind").on("click", function(e)
   {
       socket.send(JSON.stringify(
       {
@@ -90,7 +90,7 @@
       }));
   });
 
-  $(".player-fastforward").on("click", function(e)
+  $("#player-fastforward").on("click", function(e)
   {
       socket.send(JSON.stringify(
       {
@@ -100,7 +100,7 @@
       }));
   });
 
-  $(".player-skip").on("click", function(e)
+  $("#player-skip").on("click", function(e)
   {
       socket.send(JSON.stringify(
       {
