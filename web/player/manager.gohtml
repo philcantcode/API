@@ -179,23 +179,10 @@ $(".revert-ffmpeg").on("click", function(e)
         data: { 
           path: mp4Path
         },
-        success: function(response) {
-          switch (response) {
-            case "Not Found":
-              alert("File Processing Not Complete Yet");
-              break;
-            case "Move Error":
-              alert("Error when moving file");
-              break;
-            case "Delete Error":
-              alert("Error when deleting file");
-              break;
-            case "Archive File Not Found":
-              alert("The archive path couldn't be found");
-              break;
-          }
-
-          console.log("FFMPEG Response: " + response);
+        success: function(response) 
+        {
+            errorAlert(response);
+            console.log("FFMPEG Response: " + response);
         },
         error: function(xhr) {
          

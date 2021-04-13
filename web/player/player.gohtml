@@ -9,13 +9,6 @@
     Device ID <span class="badge badge-light">{{ .Contents.DeviceID }}</span>
   </a>
 
-  <div id="error-alert" class="alert alert-danger alert-dismissible col-12 collapse" role="alert">
-    <strong>Playback Error</strong> <span id="playback-error"></span>
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-
   <video controls autoplay id="player" width="100%" src="">
     <track label="English subtitles" kind="subtitles" srclang="en" src="" default=""> 
     Your browser does not support the HTML5 Video element.
@@ -147,18 +140,15 @@
 
                     if (ext != ".mp4") 
                     {
-                        $("#playback-error").text("Media is in " + ext + " format.");
-                        $("#error-alert").show();
+                        errorAlert("Media is in " + ext + " format.");
                     }
 
                     break;
               case "change-media-fail":
-                    $("#playback-error").text("Couldn't change to the next media, none found in folder.");
-                    $("#error-alert").show();
+                    errorAlert("Couldn't change to the next media, none found in folder.");
                     break;
               case "no-media-on-disk":
-                    $("#playback-error").text("Couldn't load media, no files on disk, insert drives.");
-                    $("#error-alert").show();
+                    errorAlert("Couldn't load media, no files on disk, insert drives.");
                     break;
           }
       }

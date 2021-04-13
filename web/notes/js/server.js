@@ -84,19 +84,16 @@ function save()
         switch (r.Type)
         {
             case "Error":
-                $("#note-error").text(r.Message);
-                $("#error-alert").show();
+                errorAlert(r.Message);
                 break;
             case "Success":
-                $("#note-success").text(r.Message);
-                $("#success-alert").show();
-                window.location.href = "/notes/k/" + contents.Keyword.toLowerCase();
+                successAlert(r.Message);
+                redirectTo("/notes/k/" + contents.Keyword.toLowerCase());
                 break;
         }
       },
       error: function(xhr) {
-        $("#note-error").text("Server Issue");
-        $("#error-alert").show();
+        errorAlert("Server Issue");
         console.log("ERROR: Server Issue");
       }
   });
