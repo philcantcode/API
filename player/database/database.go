@@ -103,7 +103,19 @@ func FindOrCreatePlayback(path string) Playback {
 	utils.Error("Couldn't MD5Hash: "+path, err)
 	mediaPlaybackID, err = SelectPlaybackID_ByHash(hash)
 
+	// Handles the case when file on another drive is removed
+	// If the other file doesn't exist, adds a hash to point
+	// to the media
 	if mediaPlaybackID != -1 {
+		pb := SelectMediaPlayback_ByID(mediaPlaybackID)
+
+		for _, v := range pb.Locations {
+			if v.Exists {
+				return pb
+			}
+		}
+
+		InsertMediaHash(hash, path, mediaPlaybackID)
 		return SelectMediaPlayback_ByID(mediaPlaybackID)
 	}
 
@@ -121,7 +133,7 @@ func FindOrCreatePlayback(path string) Playback {
 // multiple files on disk
 func GetPreferredLocation(playback Playback) (int, error) {
 	for i := 0; i < len(playback.Locations); i++ {
-		if playback.Locations[i].Exists {
+		if playback.Locations[i].Exists && playback.Locations[i].Ext == ".mp4" {
 			return i, nil
 		}
 	}
