@@ -40,7 +40,7 @@
         <button onclick="addTextPlain()" type="button" class="btn btn-secondary">Text</button>
         <button type="button" class="btn btn-secondary">Image</button>
         <button type="button" class="btn btn-secondary">File</button>
-        <button type="button" class="btn btn-secondary">Link</button>
+        <button onclick="addLink()" type="button" class="btn btn-secondary">Link</button>
     </div>
 
     <div class="btn-group" role="group">
@@ -53,6 +53,9 @@
 
 </div>
 
+<script type="text/javascript" src="/notes/js/elements.js"></script>
+<script type="text/javascript" src="/notes/js/server.js"></script>
+
 <script type="text/javascript">
 
 var mode = "read"; // or edit
@@ -62,18 +65,9 @@ var keywords = JSON.parse(`{{ .Contents.Keywords }}`);
 console.log(note);
 console.log(keywords);
 
-$(document).ready(function() 
+$(window).on('load', function() 
 {
-    if (note.ID == 0)
-        return;
-
     processElements();
-
-    // Remove element
-    $(".bin").on('click', function(e)
-    {
-        $(this).closest(".element-group").remove();
-    });
 
     $(".mode-checks:radio").change(function() 
     {
@@ -92,6 +86,9 @@ function processElements()
     addKeyword(note.Keyword);
     addDescription(note.Desc);
 
+    if (note.ID == 0)
+        return;
+
     for (var i = 0; i < note.Elements.length; i++)
     {
         switch (note.Elements[i].Key)
@@ -102,8 +99,26 @@ function processElements()
             case "text-plain":
                 addTextPlain(note.Elements[i].Value);
                 break;
+            case "link":
+                var label = "";
+
+                // Loop over meta to find label
+                for (var j = 0; j < note.Elements[i].Meta.length; j++)
+                {
+                    switch (note.Elements[i].Meta[j].Key)
+                    {
+                        case "label":
+                            label = note.Elements[i].Meta[j].Value;
+                            break;
+                    }
+                }
+
+                addLink(note.Elements[i].Value, label);
+                break;
         }
     }
+
+    refreshBin();
 }
 
 function processMode()
@@ -116,190 +131,50 @@ function processMode()
         mode = "read";
 }
 
-function processKeywrods(str)
+function processKeywords(str)
 {
-   
-}
-
-function addKeyword(value = "")
-{
-    var keywordArea; 
-
-    if (mode == "read")
+    var words = str.split(" ");
+    var newWords = "";
+    
+    for (var i = 0; i < words.length; i++) 
     {
-
-    }
-    else
-    {
-        keywordArea =`
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text ">Keyword</span>
-            </div>
-            <input id="keyword-element" type="text" class="form-control" value="` + value + `">
-        </div>`;
-    }
-
-    $("#meta-elements").append(keywordArea);
-}
-
-function addDescription(value = "")
-{
-    var descArea;
-
-    if (mode == "read")
-    {
-        descArea = `<h5>` + value + `</h5>`;
-    }
-    else
-    {
-        descArea = `
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text">Description</span>
-            </div>
-            <input id="description-element" type="text" class="form-control" value="` + value + `">
-        </div>`;
-    }
-
-    $("#meta-elements").append(descArea);
-}
-
-function addTitle(value = "")
-{
-    var titleArea;
-
-    if (mode == "read")
-    {
-        titleArea = `<h3>` + value + `</h3>`;
-    }
-    else
-    {
-        titleArea = `
-        <div class="input-group mb-1 element-group">
-            <div class="input-group-prepend">
-                <span class="input-group-text">Title</span>
-            </div>
-            <input name="title" style="border-top:none;" type="text" class="form-control element" value="` + value + `">
-            <div class="input-group-append">
-                <button class="input-group-text fa fa-trash bin" type="button"></button>
-            </div>
-        </div>`;
-    }
-
-    $("#note-elements").append(titleArea);
-}
-
-function addTextPlain(value = "")
-{
-    var textArea;
-
-    if (mode == "read")
-    {
-        textArea = `<p>` + value + `</p>`;
-    }
-    else
-    {
-        textArea = `
-        <div class="input-group mb-1 element-group">
-            <textarea name="text-plain" style="height:300px;" class='form-control element mb-1 element-group'>` + value + `</textarea>
-            <div class="input-group-append">
-                <button class="input-group-text fa fa-trash bin" type="button"></button>
-            </div>
-        </div>`;
-    }
-
-    $("#note-elements").append(textArea);
-}
-
-function del()
-{
-    $.ajax({
-      url: "/notes/delete",
-      type: "post",
-      data: { 
-        id: note.ID
-      },
-      success: function(response) {
-        var r = JSON.parse(response);
-
-        switch (r.Type)
+        var keywordFound = false;
+        // keyword loop
+        for (var j = 0; j < keywords.length; j++)
         {
-            case "Error":
-                $("#note-error").text(r.Message);
-                $("#error-alert").show();
-                break;
-            case "Success":
-                $("#note-success").text(r.Message);
-                $("#success-alert").show();
-                break;
+            if (words[i].toLowerCase() == keywords[j].Keyword)
+            {
+                newWords += `<a href="/notes/k/` + words[i].toLowerCase() + `" class="keyword">` + words[i] + `</a> `;
+                keywordFound = true;
+                break; // out of keyword loop
+            }
         }
-      },
-      error: function(xhr) {
-        $("#note-error").text("Server Issue");
-        $("#error-alert").show();
-        console.log("ERROR: Server Issue");
-      }
-  });
+
+        if (!keywordFound)
+        {
+            newWords += words[i] + " ";
+        }
+    }
+
+    return newWords;
 }
 
-// Handles uploading the note (new note only)
-function save()
+function refreshBin()
 {
-    var postLocation = "/notes/update"; // Existing note
-
-    // New note
-    if (note.ID == 0)
-        postLocation = "/notes/create";
-
-    var contents = {
-        "ID": note.ID,
-        "Keyword": $("#keyword-element").val(),
-        "Desc": $("#description-element").val(),
-        "Elements": []
-    };
-
-    // Loop over all the .elements and add to JSON object
-    $(".element").each(function()
+    // Remove element
+    $(".bin").on('click', function(e)
     {
-        var row = {
-            "Key": $(this).attr('name'), 
-            "Value": $(this).val()
-        };
-        
-        contents.Elements.push(row);
+        $(this).closest(".bin-group").remove();
     });
-
-    console.log("Sending: " + JSON.stringify(contents))
-
-    $.ajax({
-      url: postLocation,
-      type: "post",
-      data: { 
-        contents: JSON.stringify(contents)
-      },
-      success: function(response) {
-        var r = JSON.parse(response);
-
-        switch (r.Type)
-        {
-            case "Error":
-                $("#note-error").text(r.Message);
-                $("#error-alert").show();
-                break;
-            case "Success":
-                $("#note-success").text(r.Message);
-                $("#success-alert").show();
-                break;
-        }
-      },
-      error: function(xhr) {
-        $("#note-error").text("Server Issue");
-        $("#error-alert").show();
-        console.log("ERROR: Server Issue");
-      }
-  });
 }
+
+function ucFirst(str) 
+{
+  if (!str) return str;
+
+  return str[0].toUpperCase() + str.slice(1);
+}
+
 </script>
 
 {{template "footer" . }}

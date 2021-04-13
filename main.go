@@ -15,6 +15,7 @@ import (
 // Handle incoming web requests and direct them to the folder
 func main() {
 	flag.IntVar(&player.NumFfmpegThreads, "ffthreads", 1, "Number of threads for FFMPEG Conversions")
+	flag.BoolVar(&player.DisableFfmpeg, "ffdisable", false, "Disable FFMPEG Conversions")
 	flag.Parse()
 
 	router := mux.NewRouter()
@@ -31,7 +32,8 @@ func main() {
 	router.HandleFunc("/player/load", player.LoadMedia)
 
 	router.HandleFunc("/notes", notes.NotesPage)
-	router.HandleFunc("/notes/i/{id}", notes.ViewerPage)
+	router.HandleFunc("/notes/k/{key}", notes.ViewerPage)
+	router.HandleFunc("/notes/k", notes.ViewerPage)
 	router.HandleFunc("/notes/create", notes.CreateNote)
 	router.HandleFunc("/notes/update", notes.UpdateNote)
 	router.HandleFunc("/notes/delete", notes.DeleteNote)

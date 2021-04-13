@@ -3,7 +3,7 @@ package notes
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/philcantcode/goApi/index"
@@ -21,7 +21,7 @@ func ViewerPage(w http.ResponseWriter, r *http.Request) {
 	index.Reload()
 
 	urlParams := mux.Vars(r)
-	noteID, err := strconv.Atoi(urlParams["id"])
+	noteKey := urlParams["key"]
 
 	keywords, err := json.Marshal(notes.SelectKeywords())
 	utils.Error("Couldn't marshall keywords", err)
@@ -36,14 +36,14 @@ func ViewerPage(w http.ResponseWriter, r *http.Request) {
 		Keywords:    string(keywords),
 	}
 
-	if urlParams["id"] == "new" {
+	if len(noteKey) == 0 {
 		data.Note = notes.NoteContents{}
 		notesViewer.PageDescription = "Create New Note"
 	}
 
 	if err == nil {
-		data.Note = notes.SelectNote(noteID)
-		notesViewer.PageDescription = data.Note.Keyword
+		data.Note = notes.SelectNoteByKey(noteKey)
+		notesViewer.PageDescription = strings.Title(data.Note.Keyword)
 	}
 
 	dat, _ := json.Marshal(data.Note)

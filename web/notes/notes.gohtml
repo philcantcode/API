@@ -2,10 +2,14 @@
 {{template "header" . }}
 
 <div class="row-flex">
+    <a href="/notes/k" class="btn btn-primary btn-lg">Create Note</a>
+</div>
+
+<div class="row-flex">
     <h6>Recent Wikis</h6>
     <div class="list-group">
         {{range .Contents.RecentNotes}}
-            <a href="/notes/i/{{ .ID }}" class="list-group-item list-group-item-action active">
+            <a href="/notes/k/{{ .Keyword }}" class="list-group-item list-group-item-action active">
                 <div class="d-flex w-100 justify-content-between">
                 <h5 class="mb-1">{{ .Keyword }}</h5>
                 <small>{{ .Modified }}}</small>

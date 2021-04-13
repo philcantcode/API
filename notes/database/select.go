@@ -9,6 +9,10 @@ import (
 type Element struct {
 	Key   string
 	Value string
+	Meta  []struct {
+		Key   string
+		Value string
+	}
 }
 
 type NoteContents struct {
@@ -76,13 +80,37 @@ func SelectRecentNotes(limit int) []NoteContents {
 }
 
 // SelectNote returns 1 notes
-func SelectNote(id int) NoteContents {
+func SelectNoteByID(id int) NoteContents {
 	stmt, err := wikiCon.Prepare("SELECT `id`, `keyword`, `desc`, `text`, `modified` FROM `Notes` WHERE `id` = ?;")
 
 	utils.Error("Couldn't select from SelectNote", err)
 	defer stmt.Close()
 
 	rows, err := stmt.Query(id)
+	utils.Error("Results error from SelectNote", err)
+	defer rows.Close()
+
+	note := NoteContents{}
+
+	for rows.Next() {
+		var text string
+		var id int
+
+		rows.Scan(&id, &note.Keyword, &note.Desc, &text, &note.Modified)
+		json.Unmarshal([]byte(text), &note)
+		note.ID = id
+	}
+
+	return note
+}
+
+func SelectNoteByKey(key string) NoteContents {
+	stmt, err := wikiCon.Prepare("SELECT `id`, `keyword`, `desc`, `text`, `modified` FROM `Notes` WHERE `keyword` = ?;")
+
+	utils.Error("Couldn't select from SelectNote", err)
+	defer stmt.Close()
+
+	rows, err := stmt.Query(key)
 	utils.Error("Results error from SelectNote", err)
 	defer rows.Close()
 

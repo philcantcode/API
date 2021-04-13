@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/philcantcode/goApi/index"
 	notes "github.com/philcantcode/goApi/notes/database"
@@ -44,6 +45,8 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 	err := json.Unmarshal([]byte(contents), &note)
 	utils.Error("CreateNote JSON error", err)
 
+	note.Keyword = strings.ToLower(note.Keyword)
+
 	if len(note.Keyword) == 0 {
 		response := jsonResponse(
 			Response{
@@ -81,8 +84,6 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 
 		w.Write([]byte(response))
 	}
-
-	fmt.Printf("Note Inserted: %+v\n", note)
 }
 
 // CreateNote handles the POST request with new notes
@@ -92,10 +93,9 @@ func UpdateNote(w http.ResponseWriter, r *http.Request) {
 	note := notes.NoteContents{}
 	err := json.Unmarshal([]byte(contents), &note)
 	utils.Error("CreateNote JSON error", err)
+	note.Keyword = strings.ToLower(note.Keyword)
 
 	notes.UpdateNote(note.ID, note.Keyword, note.Desc, contents)
-
-	fmt.Printf("Note Updated: %+v\n", note)
 
 	response := jsonResponse(
 		Response{
