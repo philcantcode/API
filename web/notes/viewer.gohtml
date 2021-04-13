@@ -1,0 +1,306 @@
+{{define "viewer"}}
+{{template "header" . }}
+
+<div class="row-flex buffer-top">
+    <div class="btn-group btn-group-toggle col-12" data-toggle="buttons">
+        <label class="btn btn-secondary btn-sm">
+          <input class="mode-checks" type="radio" name="options" id="read-mode" autocomplete="off" checked> Read Mode
+        </label>
+        <label class="btn btn-secondary btn-sm">
+          <input class="mode-checks" type="radio" name="options" id="edit-mode" autocomplete="off"> Edit Mode
+        </label>
+    </div>
+</div>
+
+<div id="meta-elements" class="row-flex buffer-top">
+    
+</div>
+
+<div id="note-elements" class="row-flex jumbotron jumbotron-flex">
+
+</div>
+
+<div class="row-flex">
+    <div id="success-alert" class="alert alert-success alert-dismissible col-12 collapse" role="alert">
+        <strong>Success!</strong> <span id="note-success"></span>
+        <button type="button" class="close" data-dismiss="alert">
+          <span>&times;</span>
+        </button>
+    </div>
+    <div id="error-alert" class="alert alert-danger alert-dismissible col-12 collapse" role="alert">
+        <strong>Error!</strong> <span id="note-error"></span>
+        <button type="button" class="close" data-dismiss="alert">
+          <span>&times;</span>
+        </button>
+    </div>
+
+    <h6>Add new page element</h6>
+    <div class="btn-group" role="group">
+        <button onclick="addTitle()" type="button" class="btn btn-secondary">Title</button>
+        <button onclick="addTextPlain()" type="button" class="btn btn-secondary">Text</button>
+        <button type="button" class="btn btn-secondary">Image</button>
+        <button type="button" class="btn btn-secondary">File</button>
+        <button type="button" class="btn btn-secondary">Link</button>
+    </div>
+
+    <div class="btn-group" role="group">
+        <button onclick="save()" type="button" class="btn btn-success">Save</button>
+    </div>
+
+    <div class="btn-group" role="group">
+        <button onclick="del()" type="button" class="btn btn-danger">Delete</button>
+    </div>
+
+</div>
+
+<script type="text/javascript">
+
+var mode = "read"; // or edit
+var note = JSON.parse(`{{ .Contents.NoteJson }}`);
+var keywords = JSON.parse(`{{ .Contents.Keywords }}`);
+
+console.log(note);
+console.log(keywords);
+
+$(document).ready(function() 
+{
+    if (note.ID == 0)
+        return;
+
+    processElements();
+
+    // Remove element
+    $(".bin").on('click', function(e)
+    {
+        $(this).closest(".element-group").remove();
+    });
+
+    $(".mode-checks:radio").change(function() 
+    {
+        processMode();
+        processElements();
+    });
+
+    processMode();
+});
+
+function processElements()
+{
+    $("#meta-elements").empty();
+    $("#note-elements").empty();
+
+    addKeyword(note.Keyword);
+    addDescription(note.Desc);
+
+    for (var i = 0; i < note.Elements.length; i++)
+    {
+        switch (note.Elements[i].Key)
+        {
+            case "title":
+                addTitle(note.Elements[i].Value);
+                break;
+            case "text-plain":
+                addTextPlain(note.Elements[i].Value);
+                break;
+        }
+    }
+}
+
+function processMode()
+{
+    var editMode = $("#edit-mode").prop('checked');
+
+    if (editMode == true)
+        mode = "edit";
+    else
+        mode = "read";
+}
+
+function processKeywrods(str)
+{
+   
+}
+
+function addKeyword(value = "")
+{
+    var keywordArea; 
+
+    if (mode == "read")
+    {
+
+    }
+    else
+    {
+        keywordArea =`
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text ">Keyword</span>
+            </div>
+            <input id="keyword-element" type="text" class="form-control" value="` + value + `">
+        </div>`;
+    }
+
+    $("#meta-elements").append(keywordArea);
+}
+
+function addDescription(value = "")
+{
+    var descArea;
+
+    if (mode == "read")
+    {
+        descArea = `<h5>` + value + `</h5>`;
+    }
+    else
+    {
+        descArea = `
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Description</span>
+            </div>
+            <input id="description-element" type="text" class="form-control" value="` + value + `">
+        </div>`;
+    }
+
+    $("#meta-elements").append(descArea);
+}
+
+function addTitle(value = "")
+{
+    var titleArea;
+
+    if (mode == "read")
+    {
+        titleArea = `<h3>` + value + `</h3>`;
+    }
+    else
+    {
+        titleArea = `
+        <div class="input-group mb-1 element-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text">Title</span>
+            </div>
+            <input name="title" style="border-top:none;" type="text" class="form-control element" value="` + value + `">
+            <div class="input-group-append">
+                <button class="input-group-text fa fa-trash bin" type="button"></button>
+            </div>
+        </div>`;
+    }
+
+    $("#note-elements").append(titleArea);
+}
+
+function addTextPlain(value = "")
+{
+    var textArea;
+
+    if (mode == "read")
+    {
+        textArea = `<p>` + value + `</p>`;
+    }
+    else
+    {
+        textArea = `
+        <div class="input-group mb-1 element-group">
+            <textarea name="text-plain" style="height:300px;" class='form-control element mb-1 element-group'>` + value + `</textarea>
+            <div class="input-group-append">
+                <button class="input-group-text fa fa-trash bin" type="button"></button>
+            </div>
+        </div>`;
+    }
+
+    $("#note-elements").append(textArea);
+}
+
+function del()
+{
+    $.ajax({
+      url: "/notes/delete",
+      type: "post",
+      data: { 
+        id: note.ID
+      },
+      success: function(response) {
+        var r = JSON.parse(response);
+
+        switch (r.Type)
+        {
+            case "Error":
+                $("#note-error").text(r.Message);
+                $("#error-alert").show();
+                break;
+            case "Success":
+                $("#note-success").text(r.Message);
+                $("#success-alert").show();
+                break;
+        }
+      },
+      error: function(xhr) {
+        $("#note-error").text("Server Issue");
+        $("#error-alert").show();
+        console.log("ERROR: Server Issue");
+      }
+  });
+}
+
+// Handles uploading the note (new note only)
+function save()
+{
+    var postLocation = "/notes/update"; // Existing note
+
+    // New note
+    if (note.ID == 0)
+        postLocation = "/notes/create";
+
+    var contents = {
+        "ID": note.ID,
+        "Keyword": $("#keyword-element").val(),
+        "Desc": $("#description-element").val(),
+        "Elements": []
+    };
+
+    // Loop over all the .elements and add to JSON object
+    $(".element").each(function()
+    {
+        var row = {
+            "Key": $(this).attr('name'), 
+            "Value": $(this).val()
+        };
+        
+        contents.Elements.push(row);
+    });
+
+    console.log("Sending: " + JSON.stringify(contents))
+
+    $.ajax({
+      url: postLocation,
+      type: "post",
+      data: { 
+        contents: JSON.stringify(contents)
+      },
+      success: function(response) {
+        var r = JSON.parse(response);
+
+        switch (r.Type)
+        {
+            case "Error":
+                $("#note-error").text(r.Message);
+                $("#error-alert").show();
+                break;
+            case "Success":
+                $("#note-success").text(r.Message);
+                $("#success-alert").show();
+                break;
+        }
+      },
+      error: function(xhr) {
+        $("#note-error").text("Server Issue");
+        $("#error-alert").show();
+        console.log("ERROR: Server Issue");
+      }
+  });
+}
+</script>
+
+{{template "footer" . }}
+{{end}}
