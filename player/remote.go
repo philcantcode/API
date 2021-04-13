@@ -3,8 +3,8 @@ package player
 import (
 	"net/http"
 
-	"github.com/philcantcode/goApi/database"
 	"github.com/philcantcode/goApi/index"
+	"github.com/philcantcode/goApi/player/database"
 	"github.com/philcantcode/goApi/utils"
 )
 

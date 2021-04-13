@@ -9,19 +9,17 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/philcantcode/goApi/database"
+	"github.com/philcantcode/goApi/player/database"
 	"github.com/philcantcode/goApi/utils"
 )
 
 var players = make(map[string]player)
 
 type player struct {
-	playback database.Playback
-	players  []*websocket.Conn
-	remotes  []*websocket.Conn
-
-	playCH   chan command
-	remoteCH chan command
+	playback   database.Playback
+	players    []*websocket.Conn
+	remotes    []*websocket.Conn
+	msgChannel chan command
 }
 
 type command struct {
@@ -56,10 +54,7 @@ func SocketSetup(w http.ResponseWriter, r *http.Request) {
 	var ch player
 
 	if !exists {
-		ch = player{
-			playCH:   make(chan command, 10),
-			remoteCH: make(chan command, 10),
-		}
+		ch = player{msgChannel: make(chan command, 10)}
 
 		if pageType == "remote" {
 			ch.remotes = append(ch.remotes, ws)
@@ -94,21 +89,8 @@ func SocketSetup(w http.ResponseWriter, r *http.Request) {
 func processor() {
 	for range time.Tick(300 * time.Millisecond) {
 		for id, val := range players {
-			// Remote channels
-			for i := 0; i < len(val.remoteCH); i++ {
-				cmd := <-val.remoteCH
-
-				switch cmd.Type {
-				case "control":
-					controls(cmd, id)
-				default:
-					fmt.Println("Socket Processor doesn't recognise remote command")
-				}
-			}
-
-			// Player channels
-			for i := 0; i < len(val.playCH); i++ {
-				cmd := <-val.playCH
+			for i := 0; i < len(val.msgChannel); i++ {
+				cmd := <-val.msgChannel
 
 				switch cmd.Type {
 				case "status":
@@ -142,7 +124,7 @@ func playerSocket(ws *websocket.Conn, devID string) {
 		err = json.Unmarshal(msg, &cmd)
 		utils.Error("Error opening JSON", err)
 
-		players[devID].playCH <- cmd
+		players[devID].msgChannel <- cmd
 		fmt.Printf("Device %s (player) -> %+v\n", devID, cmd)
 	}
 }
@@ -167,7 +149,7 @@ func remoteSocket(ws *websocket.Conn, devID string) {
 		err = json.Unmarshal(msg, &cmd)
 		utils.Error("Error opening JSON", err)
 
-		players[devID].playCH <- cmd
+		players[devID].msgChannel <- cmd
 		fmt.Printf("Device %s (remote) -> %+v\n", devID, cmd)
 	}
 }

@@ -31,6 +31,10 @@ func main() {
 	router.HandleFunc("/player/load", player.LoadMedia)
 
 	router.HandleFunc("/notes", notes.NotesPage)
+	router.HandleFunc("/notes/i/{id}", notes.ViewerPage)
+	router.HandleFunc("/notes/create", notes.CreateNote)
+	router.HandleFunc("/notes/update", notes.UpdateNote)
+	router.HandleFunc("/notes/delete", notes.DeleteNote)
 
 	fileServer := http.FileServer(http.Dir(utils.FilePath))
 	router.PathPrefix("/").Handler(http.StripPrefix("/", fileServer))

@@ -7,31 +7,31 @@
   </div>
 
   <div class="list-group col-md-4 pull-left">
+    <div class="btn-group pull-left" role="group">
+      <button id="continue-watching" type="button" class="btn btn-outline-dark dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Stop Tracking
+      </button>
+      
+      <div class="dropdown-menu" aria-labelledby="continue-watching">
+        {{range .Contents.TrackedFolders}}
+            <a class="dropdown-item" href="?untrack={{ .AbsPath }}">{{ .AbsPath }}</a>
+        {{end}}
+      </div>
+    </div>
+
     {{range .Contents.Drives}}
         <a href="?path={{ .AbsPath }}" class="list-group-item list-group-item-action">{{ .AbsPath }} Drive</a>
     {{end}}
-
-    <div class="btn-group mt-auto pull-left" role="group">
-          <button id="continue-watching" type="button" class="btn btn-outline-dark dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Stop Tracking
-          </button>
-          
-          <div class="dropdown-menu" aria-labelledby="continue-watching">
-            {{range .Contents.TrackedFolders}}
-                <a class="dropdown-item" href="?untrack={{ .AbsPath }}">{{ .AbsPath }}</a>
-            {{end}}
-          </div>
-      </div>
   </div>  
 
   <div class="list-group col-md-8 pull-left">
+    {{ if .Contents.Selected }}
+       <a href="?track={{ .Contents.Selected }}" class="btn btn-outline-dark pull-right">Track: {{.Contents.Selected}}</a>
+    {{ end }}
+
     {{range .Contents.SubFolders}}
         <a href="?path={{ .AbsPath }}" class="list-group-item list-group-item-action">{{ .AbsPath }}</a>
     {{end}}
-
-    {{ if .Contents.Selected }}
-       <a href="?track={{ .Contents.Selected }}" class="btn btn-outline-dark pull-right">Track: {{.Contents.Selected}}</a>
-      {{ end }}
   </div>
 </div>
 
@@ -97,15 +97,6 @@
 </tbody>
 </table> 
 </div>
-
-
-
-
-
-    
-    
-
-   
 
 <script type="text/javascript">
 $("#enable-fast-ffmpeg").on("click", function(e)

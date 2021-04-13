@@ -1,5 +1,20 @@
 {{define "notes"}}
 {{template "header" . }}
 
+<div class="row-flex">
+    <h6>Recent Wikis</h6>
+    <div class="list-group">
+        {{range .Contents.RecentNotes}}
+            <a href="/notes/i/{{ .ID }}" class="list-group-item list-group-item-action active">
+                <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ .Keyword }}</h5>
+                <small>{{ .Modified }}}</small>
+                </div>
+                <p class="mb-1">{{ .Desc }}</p>
+            </a>
+        {{ end }}
+      </div>
+</div>
+
 {{template "footer" . }}
 {{end}}
