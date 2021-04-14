@@ -81,7 +81,8 @@ function processElements()
         switch (note.Elements[i].Key)
         {
             case "title":
-                addTitle(note.Elements[i].Value);
+            case "header":
+                addHeader(note.Elements[i].Value);
                 break;
             case "text-plain":
                 addTextPlain(note.Elements[i].Value);
@@ -154,10 +155,31 @@ function processKeywords(str)
 
 function refreshBin()
 {
+    // Clear old on-clicks
+    $(".bin").prop("onclick", null).off("click");
+    $(".up").prop("onclick", null).off("click");
+    $(".down").prop("onclick", null).off("click");
+
     // Remove element
     $(".bin").on('click', function(e)
     {
         $(this).closest(".bin-group").remove();
+    });
+
+    $(".up").on("click", function(e) 
+    {
+        var currentElement = $(this).closest(".bin-group");
+        var aboveElement = currentElement.prev();
+
+        currentElement.insertBefore(aboveElement);
+    });
+
+    $(".down").on("click", function(e) 
+    {
+        var currentElement = $(this).closest(".bin-group");
+        var aboveElement = currentElement.next();
+
+        currentElement.insertAfter(aboveElement);
     });
 }
 

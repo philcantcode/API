@@ -44,29 +44,31 @@ function addDescription(value = "")
     refreshBin();
 }
 
-function addTitle(value = "")
+function addHeader(value = "")
 {
-    var titleArea;
+    var headerArea;
 
     if (mode == "read")
     {
-        titleArea = `<h3>` + value + `</h3>`;
+        headerArea = `<h3>` + value + `</h3>`;
     }
     else
     {
-        titleArea = `
+        headerArea = `
         <div class="input-group mb-1 bin-group">
             <div class="input-group-prepend">
-                <span class="input-group-text">Title</span>
+                <span class="input-group-text">Header</span>
             </div>
             <input name="title" style="border-top:none;" type="text" class="form-control element" value="` + value + `">
             <div class="input-group-append">
+                <button class="input-group-text fa fa-chevron-up up" type="button"></button>
+                <button class="input-group-text fa fa-chevron-down down" type="button"></button>
                 <button class="input-group-text fa fa-trash bin" type="button"></button>
             </div>
         </div>`;
     }
 
-    $("#note-elements").append(titleArea);
+    $("#note-elements").append(headerArea);
     refreshBin();
 }
 
@@ -84,6 +86,8 @@ function addTextPlain(value = "")
         <div class="input-group mb-1 bin-group">
             <textarea name="text-plain" style="height:300px;" class='form-control element mb-1 element-group'>` + value + `</textarea>
             <div class="input-group-append">
+                <button class="input-group-text fa fa-chevron-up up" type="button"></button>
+                <button class="input-group-text fa fa-chevron-down down" type="button"></button>
                 <button class="input-group-text fa fa-trash bin" type="button"></button>
             </div>
         </div>`;
@@ -114,6 +118,8 @@ function addLink(link = "", label = "")
             <input name="label" type="text" class="form-control col-3" placeholder="Label" value="` + label + `">
             <input name="link" type="text" class="form-control element" placeholder="URL" value="` + link + `">
             <div class="input-group-append">
+                <button class="input-group-text fa fa-chevron-up up" type="button"></button>
+                <button class="input-group-text fa fa-chevron-down down" type="button"></button>
                 <button class="input-group-text fa fa-trash bin" type="button"></button>
             </div>
         </div>`;

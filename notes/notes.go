@@ -97,8 +97,6 @@ func UpdateNote(w http.ResponseWriter, r *http.Request) {
 	utils.Error("CreateNote JSON error", err)
 	note.Keyword = strings.ToLower(note.Keyword)
 
-	fmt.Printf("%+v", note)
-
 	notes.UpdateNote(note.ID, note.Keyword, note.Desc, contents)
 
 	response := jsonResponse(
