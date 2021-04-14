@@ -70,13 +70,15 @@ function save()
         contents.Elements.push(row);
     });
 
-    console.log("Sending: " + JSON.stringify(contents))
+    var jsonContents = jsonEscape(JSON.stringify(contents));
+
+    console.log("Sending: " + jsonContents);
 
     $.ajax({
       url: postLocation,
       type: "post",
       data: { 
-        contents: JSON.stringify(contents)
+        contents: jsonContents
       },
       success: function(response) {
         var r = JSON.parse(response);
@@ -97,4 +99,9 @@ function save()
         console.log("ERROR: Server Issue");
       }
   });
+}
+
+function jsonEscape(str)  
+{
+    return str.replace(/\n/g, "\\\\n").replace(/\r/g, "\\\\r").replace(/\t/g, "\\\\t");
 }

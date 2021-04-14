@@ -40,6 +40,7 @@ type Response struct {
 // CreateNote handles the POST request with new notes
 func CreateNote(w http.ResponseWriter, r *http.Request) {
 	contents := r.FormValue("contents")
+	contents = strings.ReplaceAll(contents, "\\n", "\\\\n")
 
 	note := notes.NoteContents{}
 	err := json.Unmarshal([]byte(contents), &note)
@@ -89,11 +90,14 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 // CreateNote handles the POST request with new notes
 func UpdateNote(w http.ResponseWriter, r *http.Request) {
 	contents := r.FormValue("contents")
+	contents = strings.ReplaceAll(contents, "\\n", "\\\\n")
 
 	note := notes.NoteContents{}
 	err := json.Unmarshal([]byte(contents), &note)
 	utils.Error("CreateNote JSON error", err)
 	note.Keyword = strings.ToLower(note.Keyword)
+
+	fmt.Printf("%+v", note)
 
 	notes.UpdateNote(note.ID, note.Keyword, note.Desc, contents)
 

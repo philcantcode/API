@@ -117,12 +117,10 @@
                     player.pause();
                     break;
               case "toggle":
-                    if (player.paused) {
+                    if (player.paused) 
                         player.play();
-                    }
-                    else {
+                    else
                         player.pause();
-                    }
                     break;
               case "rewind":
                     fastforward(-10);
@@ -139,9 +137,7 @@
                     console.log("Loaded Media: " + loadedMedia);
 
                     if (ext != ".mp4") 
-                    {
                         errorAlert("Media is in " + ext + " format.");
-                    }
 
                     break;
               case "change-media-fail":
@@ -173,22 +169,21 @@
       switch(e.key)
       { 
         case "Enter":
-        e.preventDefault();  
-        socket.send(JSON.stringify({
-            Type: "control",
-            Key: "skip",
-            Value: ""
-        }));
-        break;
+            e.preventDefault();  
+            socket.send(JSON.stringify({
+                Type: "control",
+                Key: "skip",
+                Value: ""
+            }));
+            break;
         case " ":
-        e.preventDefault();
-        if (player.paused) {
-            player.play();
-        }
-        else {
-            player.pause();
-        }
-        break;
+            e.preventDefault();
+            
+            if (player.paused)
+                player.play();
+            else
+                player.pause();
+            break;
       } 
   });
 

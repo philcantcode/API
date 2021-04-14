@@ -20,7 +20,7 @@
 
 </div>
 
-<div class="row-flex">
+<div id="tool-area" class="row-flex collapse">
     <h6>Add new page element</h6>
     <div class="btn-group" role="group">
         <button onclick="addTitle()" type="button" class="btn btn-secondary">Title</button>
@@ -113,9 +113,15 @@ function processMode()
     var editMode = $("#edit-mode").prop('checked');
 
     if (editMode == true)
+    {
         mode = "edit";
+        $("#tool-area").collapse("show");
+    }
     else
+    {
         mode = "read";
+        $("#tool-area").collapse("hide");
+    }
 }
 
 function processKeywords(str)

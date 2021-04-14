@@ -76,7 +76,7 @@ function addTextPlain(value = "")
 
     if (mode == "read")
     {
-        textArea = `<p>` + processKeywords(value) + `</p>`;
+        textArea = `<p style="white-space: pre-wrap;">` + processKeywords(value) + `</p>`;
     }
     else
     {
