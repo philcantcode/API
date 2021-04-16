@@ -23,7 +23,7 @@
 <div id="tool-area" class="row-flex collapse">
     <h6>Add new page element</h6>
     <div class="btn-group" role="group">
-        <button onclick="addTitle()" type="button" class="btn btn-secondary">Title</button>
+        <button onclick="addHeader()" type="button" class="btn btn-secondary">Header</button>
         <button onclick="addTextPlain()" type="button" class="btn btn-secondary">Text</button>
         <button type="button" class="btn btn-secondary">Image</button>
         <button type="button" class="btn btn-secondary">File</button>
@@ -129,18 +129,62 @@ function processKeywords(str)
 {
     var words = str.split(" ");
     var newWords = "";
+    var skipToWord = -1;
     
     for (var i = 0; i < words.length; i++) 
     {
         var keywordFound = false;
+        
+        if (skipToWord > i)
+            continue;
+
         // keyword loop
         for (var j = 0; j < keywords.length; j++)
         {
-            if (words[i].toLowerCase() == keywords[j].Keyword)
+            var key = keywords[j].Keyword.split(" "); // Keyword
+            var lowCaseWord = words[i].toLowerCase();              // Lowercase <p> word
+            var caseWord = words[i];                      // <p> word with default casing
+
+            if (key.length == 1)
             {
-                newWords += `<a href="/notes/k/` + words[i].toLowerCase() + `" class="keyword">` + words[i] + `</a> `;
-                keywordFound = true;
-                break; // out of keyword loop
+                
+                if (lowCaseWord == key[0])
+                {
+                    newWords += `<a href="/notes/k/` + lowCaseWord + `" class="keyword">` + caseWord + `</a> `;
+                    keywordFound = true;
+                    skipToWord = -1;
+                    break; // out of keyword loop
+                }
+            }
+            else // Handles the case where there's multiple words in the key
+            {
+                var perfectMultiKeyMatch = true;
+                var perfectMultiMatchStr = "";
+
+                // Loop over each component in key
+                for (var k = 0; k < key.length; k++)
+                {
+                    var compWord = words[i + k].replace(/(\r\n|\n|\r)/gm, "").toLowerCase();
+                    
+                    if (compWord == key[k])
+                    {
+                        perfectMultiMatchStr += words[i + k] + " ";
+                        skipToWord = i + k + 1; // next word
+                    }
+                    else
+                    {
+                        perfectMultiKeyMatch = false;
+                        skipToWord = -1;
+                        break;
+                    }
+                }
+
+                if (perfectMultiKeyMatch)
+                {
+                    perfectMultiMatchStr = perfectMultiMatchStr.substring(0, perfectMultiMatchStr.length - 1);
+                    newWords += `<a href="/notes/k/` + perfectMultiMatchStr.toLowerCase() + `" class="keyword">` + perfectMultiMatchStr + `</a> `;
+                    keywordFound = true;
+                }
             }
         }
 

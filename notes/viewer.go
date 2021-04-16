@@ -39,9 +39,7 @@ func ViewerPage(w http.ResponseWriter, r *http.Request) {
 	if len(noteKey) == 0 {
 		data.Note = notes.NoteContents{}
 		notesViewer.PageDescription = "Create New Note"
-	}
-
-	if err == nil {
+	} else {
 		data.Note = notes.SelectNoteByKey(noteKey)
 		notesViewer.PageDescription = strings.Title(data.Note.Keyword)
 	}

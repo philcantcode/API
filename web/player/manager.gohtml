@@ -108,7 +108,7 @@ $("#enable-fast-ffmpeg").on("click", function(e)
         type: "fast"
       },
       success: function(response) {
-
+        successAlert("FFMPEG Fast Conversion Enabled");
       },
       error: function(xhr) {
         
@@ -125,7 +125,7 @@ $("#enable-slow-ffmpeg").on("click", function(e)
         type: "slow"
       },
       success: function(response) {
-
+        successAlert("FFMPEG Slow Conversion Enabled");
       },
       error: function(xhr) {
 
@@ -142,7 +142,7 @@ $("#disable-all-ffmpeg").on("click", function(e)
         type: "disable"
       },
       success: function(response) {
-        
+        successAlert("FFMPEG Conversion Disabled");
       },
       error: function(xhr) {
         

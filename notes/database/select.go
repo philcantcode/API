@@ -2,6 +2,7 @@ package notes
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/philcantcode/goApi/utils"
 )
@@ -17,7 +18,7 @@ type Element struct {
 
 type NoteContents struct {
 	ID       int
-	Modified int
+	Modified string
 
 	Keyword  string
 	Desc     string
@@ -31,7 +32,7 @@ type Keyword struct {
 
 // SelectKeywords returns all keywords
 func SelectKeywords() []Keyword {
-	stmt, err := wikiCon.Prepare("SELECT `id`, `keyword` FROM `Notes`;")
+	stmt, err := wikiCon.Prepare("SELECT `id`, `keyword` FROM `Notes` ORDER BY LENGTH(`keyword`) DESC;")
 
 	utils.Error("Couldn't select from SelectKeywords", err)
 	defer stmt.Close()
@@ -54,7 +55,7 @@ func SelectKeywords() []Keyword {
 
 // SelectRecentNotes returns all recent notes
 func SelectRecentNotes(limit int) []NoteContents {
-	stmt, err := wikiCon.Prepare("SELECT `id`, `keyword`, `desc`, `text`, `modified` FROM `Notes` ORDER BY `id` DESC LIMIT ?;")
+	stmt, err := wikiCon.Prepare("SELECT `id`, `keyword`, `desc`, `text`, `modified` FROM `Notes` ORDER BY `modified` DESC LIMIT ?;")
 
 	utils.Error("Couldn't select from SelectRecentNotes", err)
 	defer stmt.Close()
@@ -106,14 +107,12 @@ func SelectNoteByID(id int) NoteContents {
 
 func SelectNoteByKey(key string) NoteContents {
 	stmt, err := wikiCon.Prepare("SELECT `id`, `keyword`, `desc`, `text`, `modified` FROM `Notes` WHERE `keyword` = ?;")
-
 	utils.Error("Couldn't select from SelectNote", err)
 	defer stmt.Close()
 
-	rows, err := stmt.Query(key)
+	rows, err := stmt.Query(strings.ToLower(key))
 	utils.Error("Results error from SelectNote", err)
 	defer rows.Close()
-
 	note := NoteContents{}
 
 	for rows.Next() {

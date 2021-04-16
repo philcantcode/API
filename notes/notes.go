@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/philcantcode/goApi/index"
 	notes "github.com/philcantcode/goApi/notes/database"
@@ -25,6 +26,13 @@ func NotesPage(w http.ResponseWriter, r *http.Request) {
 		RecentNotes []notes.NoteContents
 	}{
 		RecentNotes: notes.SelectRecentNotes(50),
+	}
+
+	for i := 0; i < len(data.RecentNotes); i++ {
+		data.RecentNotes[i].Keyword = strings.Title(data.RecentNotes[i].Keyword)
+		unix, _ := strconv.Atoi(data.RecentNotes[i].Modified)
+		uTime := time.Unix(int64(unix), 0)
+		data.RecentNotes[i].Modified = time.Since(uTime).String()
 	}
 
 	notesPage.Contents = data
