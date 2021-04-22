@@ -1,7 +1,6 @@
 package player
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/philcantcode/goApi/player/database"
@@ -27,15 +27,23 @@ var ConversionPriorityFolder = ""
 
 var codecFilter *regexp.Regexp
 var audioFilter *regexp.Regexp
+var durationFilter *regexp.Regexp
+var timeFilter *regexp.Regexp
 
 var NumFfmpegThreads int
 var DisableFfmpeg = false
+
+var ffmpegExec *exec.Cmd
 
 type FfmpegMetrics struct {
 	File      utils.File
 	Status    string
 	StartTime time.Time
 	EndTime   time.Time
+
+	Duration    time.Time
+	CurrentTime time.Time
+	TimeLeft    int
 }
 
 func (p *FfmpegMetrics) NowTime() string {
@@ -50,6 +58,8 @@ func init() {
 	os := runtime.GOOS
 	codecFilter = regexp.MustCompile(`(?m)(Video: )([^\s]+)`)
 	audioFilter = regexp.MustCompile(`(?m)(Audio: )([^\s]+)`)
+	durationFilter = regexp.MustCompile(`(?m)(DURATION[\s]*: )([^\s,\t]+)`)
+	timeFilter = regexp.MustCompile(`(?m)(time=)([^\s]+)`)
 
 	switch os {
 	case "windows":
@@ -182,19 +192,33 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 		targAudio = BROWSER_AUDIO
 	}
 
+	var wg sync.WaitGroup
+
 	// Run the command on terminal
-	var ffmpeg = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-loglevel", "error", "-hwaccel", "cuda", "-y", "-i", origPath.AbsPath, "-c:v", targVideo, "-c:a", targAudio, mp4File.AbsPath)
+	ffmpegExec = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-hwaccel", "cuda", "-y", "-i", origPath.AbsPath, "-c:v", targVideo, "-c:a", targAudio, mp4File.AbsPath)
 
 	if stdout {
-		ffmpeg.Stdout = os.Stdout
-		ffmpeg.Stderr = os.Stderr
+		ffmpegExec.Stdout = os.Stdout
+		ffmpegExec.Stderr = os.Stderr
 	}
 
-	var outb, errb bytes.Buffer
-	ffmpeg.Stdout = &outb
-	ffmpeg.Stderr = &errb
+	outPipe, _ := ffmpegExec.StdoutPipe()
+	errPipe, _ := ffmpegExec.StderrPipe()
 
-	err := ffmpeg.Run()
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		printCMD(outPipe)
+	}()
+
+	go func() {
+		defer wg.Done()
+		printCMD(errPipe)
+	}()
+
+	err := ffmpegExec.Run()
+	wg.Wait()
+	ffmpegExec.Wait()
 
 	// Calculate duration of conversion
 	FfmpegStats[pos].EndTime = time.Now()
@@ -202,7 +226,7 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	fmt.Printf("   > Duration %s \n", duration)
 
 	if err != nil {
-		fmt.Println("err:", errb.String())
+		fmt.Println("FFMPEG Error:", err)
 		log.Println(err)
 		FfmpegStats[pos].Status = "Error"
 		return
@@ -243,5 +267,44 @@ func unzipFFMPEG() {
 		err := exec.Run()
 
 		utils.Error("unzipFFMPEG couldn't unzip the FFMPEG files", err)
+	}
+}
+
+// Thread safe way to handle FFMPEG command output
+// Extracts the time and duration
+func printCMD(r io.Reader) {
+	buf := make([]byte, 1024)
+
+	for {
+		pos := len(FfmpegStats) - 1
+		n, err := r.Read(buf)
+		if n > 0 {
+			timeStr := timeFilter.FindStringSubmatch(string(buf[0:n]))
+			durationStr := durationFilter.FindStringSubmatch(string(buf[0:n]))
+
+			if timeStr != nil {
+				t, err := time.Parse("15:04:05", timeStr[2][0:11])
+				utils.Error("Time error", err)
+				FfmpegStats[pos].CurrentTime = t
+
+				subTime := FfmpegStats[pos].Duration.Sub(t)
+				FfmpegStats[pos].TimeLeft = int(subTime.Minutes())
+
+				if DisableFfmpeg {
+					fmt.Println("Killing FFMPEG execution")
+					ffmpegExec.Process.Kill()
+				}
+			}
+
+			if durationStr != nil {
+				t, err := time.Parse("15:04:05", durationStr[2][0:11])
+				utils.Error("Time error", err)
+				FfmpegStats[pos].Duration = t
+			}
+		}
+
+		if err != nil {
+			break
+		}
 	}
 }

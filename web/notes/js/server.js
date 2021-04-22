@@ -50,7 +50,7 @@ function save()
     {
         var row = {
             "Key": $(this).attr('name'), 
-            "Value": $(this).val(),
+            "Value": jsonEscape($(this).val()),
             "Meta": []
         };
 
@@ -62,7 +62,7 @@ function save()
                 var label = $(this).closest(".input-group").find("[name='label']").val();
                 row.Meta[0] = {
                     "Key": "label",
-                    "Value": label
+                    "Value": jsonEscape(label)
                 };
                 break;
         }
@@ -70,7 +70,7 @@ function save()
         contents.Elements.push(row);
     });
 
-    var jsonContents = jsonEscape(JSON.stringify(contents));
+    var jsonContents = JSON.stringify(contents);
 
     console.log("Sending: " + jsonContents);
 
@@ -103,5 +103,10 @@ function save()
 
 function jsonEscape(str)  
 {
-    return str.replace(/\n/g, "\\\\n").replace(/\r/g, "\\\\r").replace(/\t/g, "\\\\t");
+    str = str.replace(/\n/g, "\n");
+    str = str.replace(/\r/g, "\r");
+    str = str.replace(/\t/g, "\t");  
+    str = str.replace(/"/g, '\\\"');
+
+    return str;
 }

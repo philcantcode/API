@@ -15,10 +15,14 @@ var alphaNumFilter *regexp.Regexp
 const winSep = "\\"
 const macSep = "/"
 
+var loadableFiles []string
+
 func init() {
 	var err error
 	alphaNumFilter, err = regexp.Compile("[^A-Za-z0-9]+")
 	Error("Couldn't compile alphaNumFilter regex", err)
+
+	loadableFiles = append(loadableFiles, ".mp4", ".avi", ".mkv", ".mp3")
 }
 
 // File represents a file on OS
@@ -167,7 +171,7 @@ func GetNextMatchingOrderedFile(file File) (File, error) {
 	for i := 0; i < len(files); i++ {
 		if files[i].FileName == file.FileName {
 			for j := i + 1; j < len(files); j++ {
-				if files[j].Ext == file.Ext {
+				if Contains(files[j].Ext, loadableFiles) {
 					return files[j], nil
 				}
 			}

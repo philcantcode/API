@@ -163,10 +163,20 @@
       }));
   });
 
-  // Key functions
+  // Override key functions
   $(document).on("keydown", function (e) 
   {
-      switch(e.key)
+        overrideDefaultControls(e);
+  });
+
+  $("#player").on("keydown", function (e) 
+  {
+        overrideDefaultControls(e);
+  });
+
+  function overrideDefaultControls(e)
+  {
+    switch(e.key)
       { 
         case "Enter":
             e.preventDefault();  
@@ -184,13 +194,21 @@
             else
                 player.pause();
             break;
-      } 
-  });
+        case "ArrowLeft":
+            fastforward(-10);
+            break;
+        case "ArrowRight":
+            fastforward(10);
+            break;
+        default:
+            console.log(e.key);
+      }
+  }
 
   // Fast forward (or rewind) the player
   function fastforward(val)
   {
-      player.currentTime = (player.currentTime + val);
+      player.currentTime = player.currentTime + val;
   }
 
   // Skip to the next media

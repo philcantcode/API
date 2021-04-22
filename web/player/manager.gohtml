@@ -47,7 +47,7 @@
       <thead class="thead-dark">
         <tr>
             <th>Media</th>
-            <th>Duration</th>
+            <th>Remaining</th>
             <th>Status</th>
         </tr>
       </thead>
@@ -55,7 +55,7 @@
       {{range .Contents.FfmpegMetrics}}
       <tr style="margin-bottom:5px; border-bottom:none;">
           <td rowspan="2" style="word-break:break-all;">{{ .File.AbsPath }}</td>
-          <td>{{ .NowTime }}</td>
+          <td>{{ .TimeLeft }} mins</td>
           <td>{{ .Status }}</td>
       </tr>
       <tr style="border-top:none;">
