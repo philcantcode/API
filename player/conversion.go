@@ -58,7 +58,7 @@ func init() {
 	os := runtime.GOOS
 	codecFilter = regexp.MustCompile(`(?m)(Video: )([^\s]+)`)
 	audioFilter = regexp.MustCompile(`(?m)(Audio: )([^\s]+)`)
-	durationFilter = regexp.MustCompile(`(?m)(DURATION[\s]*: )([^\s,\t]+)`)
+	durationFilter = regexp.MustCompile(`(?m)(Duration[\s]*: )([^\s,\t]+)`)
 	timeFilter = regexp.MustCompile(`(?m)(time=)([^\s]+)`)
 
 	switch os {
@@ -283,7 +283,7 @@ func printCMD(r io.Reader) {
 			durationStr := durationFilter.FindStringSubmatch(string(buf[0:n]))
 
 			if timeStr != nil {
-				t, err := time.Parse("15:04:05", timeStr[2][0:11])
+				t, err := time.Parse("15:04:05", timeStr[2]) //[0:11]
 				utils.Error("Time error", err)
 				FfmpegStats[pos].CurrentTime = t
 
@@ -297,7 +297,7 @@ func printCMD(r io.Reader) {
 			}
 
 			if durationStr != nil {
-				t, err := time.Parse("15:04:05", durationStr[2][0:11])
+				t, err := time.Parse("15:04:05", durationStr[2])
 				utils.Error("Time error", err)
 				FfmpegStats[pos].Duration = t
 			}
