@@ -40,19 +40,21 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 		SafePlayParam string
 
 		// File selector menu containing Directories > Folders > Files
-		Directories    []utils.File
-		SubFolders     []utils.File
-		Files          []utils.File
-		RecentlyPlayed []RecentlyPlayed
+		Directories      []utils.File
+		SubFolders       []utils.File
+		Files            []utils.File
+		RecentlyPlayed   []RecentlyPlayed
+		RecentlyModified []RecentlyModified
 
 		// Media that is being played
 		Playback database.Playback
 	}{
-		IP:             utils.Host,
-		Port:           utils.Port,
-		Directories:    database.SelectRootDirectories(),
-		RecentlyPlayed: getRecentlyWatched(),
-		DeviceID:       utils.RandomString(8),
+		IP:               utils.Host,
+		Port:             utils.Port,
+		Directories:      database.SelectRootDirectories(),
+		RecentlyPlayed:   getRecentlyWatched(),
+		DeviceID:         utils.RandomString(8),
+		RecentlyModified: RecentlyModifiedMedia,
 	}
 
 	if openParam != "" {
@@ -86,7 +88,7 @@ func PlayerPage(w http.ResponseWriter, r *http.Request) {
 // Returns the media last changed by the database (e.g., played)
 func getRecentlyWatched() []RecentlyPlayed {
 	// Get a past time period -n days
-	timeRange := time.Now().AddDate(0, 0, -10).Unix()
+	timeRange := time.Now().AddDate(0, 0, -60).Unix()
 	recentPlaybackList := database.SelectPlaybacks_ByTime(timeRange)
 	recent := make(map[string]database.Playback)
 	locations := make(map[string]utils.File)

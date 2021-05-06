@@ -18,6 +18,8 @@ func main() {
 	flag.BoolVar(&player.DisableFfmpeg, "ffdisable", false, "Disable FFMPEG Conversions")
 	flag.Parse()
 
+	go player.FindRecentlyAdded()
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", index.IndexPage)

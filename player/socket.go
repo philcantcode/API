@@ -228,16 +228,23 @@ func controls(cmd command, devID string) {
 
 		SendToPlayers(response, devID)
 	case "skip": // Find next ID, send to remotes + players, change channel ID, update details
-		prefLoc := players[devID].playback.PrefLoc
-		currentMedia := players[devID].playback.Locations[prefLoc]
-		nextMedia, err := utils.GetNextMatchingOrderedFile(currentMedia)
-
 		response := jsonResponse(
 			Response{
 				Type:     "error",
 				Key:      "change-media-fail",
 				Value:    "",
 				Playback: database.Playback{}})
+
+		prefLoc := players[devID].playback.PrefLoc
+
+		if prefLoc == -1 {
+			SendToPlayers(response, devID)
+			SendToRemotes(response, devID)
+			return
+		}
+
+		currentMedia := players[devID].playback.Locations[prefLoc]
+		nextMedia, err := utils.GetNextMatchingOrderedFile(currentMedia)
 
 		if err == nil {
 			fmt.Printf("findNextMedia found: %s\n", nextMedia.AbsPath)

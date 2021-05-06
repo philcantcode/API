@@ -217,17 +217,17 @@ func FindFfmpegHistory(anyPath string) (FfmpegHistory, error) {
 }
 
 // SelectAllFfmpeg gets all ffmpeg histories
-func SelectAllFfmpeg() []FfmpegHistory {
+func SelectAllFfmpeg(limit int) []FfmpegHistory {
 	var histories []FfmpegHistory
 
 	stmt, err := playerCon.Prepare("SELECT `path`, `archivePath`, " +
 		"`originalCodecs`, `convertedCodecs`, `duration`, `date` " +
-		"FROM `FfmpegConversions` ORDER BY `id` DESC;")
+		"FROM `FfmpegConversions` ORDER BY `id` DESC LIMIT ?;")
 
 	utils.Error("Couldn't select all from FfmpegConversions", err)
 	defer stmt.Close()
 
-	rows, err := stmt.Query()
+	rows, err := stmt.Query(limit)
 
 	utils.Error("Results error from FfmpegConversions", err)
 	defer rows.Close()
