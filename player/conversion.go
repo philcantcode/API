@@ -141,12 +141,18 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	}
 
 	// Initial checks for the files
-	if origPath.Ext != ".avi" && origPath.Ext != ".mkv" {
+	switch origPath.Ext {
+	case ".avi":
+	case ".mkv":
+		//case ".mp4":
+		break
+	default:
 		return
 	}
 
 	origFile := database.FindOrCreatePlayback(path)
 	mp4File := utils.ProcessFile(origPath.Path + origPath.FileName + ".mp4")
+	//tempMp4File := utils.ProcessFile("temp." + origPath.Path + origPath.FileName + ".mp4")
 
 	// Metrics struct for tracking conversion progress
 	var metrics = FfmpegMetrics{File: origPath, StartTime: time.Now(), Status: "In Progress"}
@@ -195,7 +201,7 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	var wg sync.WaitGroup
 
 	// Run the command on terminal
-	ffmpegExec = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-hwaccel", "cuda", "-y", "-i", origPath.AbsPath, "-c:v", targVideo, "-c:a", targAudio, mp4File.AbsPath)
+	ffmpegExec = exec.Command(ffmpegPath, "-threads", fmt.Sprintf("%d", NumFfmpegThreads), "-hide_banner", "-y", "-i", origPath.AbsPath, "-c:v", targVideo, "-c:a", targAudio, mp4File.AbsPath)
 
 	if stdout {
 		ffmpegExec.Stdout = os.Stdout
@@ -203,7 +209,7 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	}
 
 	outPipe, _ := ffmpegExec.StdoutPipe()
-	errPipe, _ := ffmpegExec.StderrPipe()
+	//errPipe, _ := ffmpegExec.StderrPipe()
 
 	wg.Add(2)
 	go func() {
@@ -213,7 +219,7 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 
 	go func() {
 		defer wg.Done()
-		printCMD(errPipe)
+		//printCMD(errPipe)
 	}()
 
 	err := ffmpegExec.Run()
@@ -247,8 +253,10 @@ func ConvertToMP4(path string, stdout bool, remove bool) {
 	archiveFile := archiveFolder + sep + origPath.FileName + origPath.Ext
 
 	// Make folder for .ffmpeg if doesn't exist
+	//os.Rename(tempMp4File.AbsPath, mp4File.AbsPath)
 	os.Mkdir(archiveFolder, 0755)
 	os.Rename(metrics.File.AbsPath, archiveFile)
+
 	mp4Hash, err := utils.MD5Hash(mp4File.AbsPath)
 	utils.Error("Couldn't hash new MP4 file after conversion", err)
 
@@ -278,6 +286,7 @@ func printCMD(r io.Reader) {
 	for {
 		pos := len(FfmpegStats) - 1
 		n, err := r.Read(buf)
+
 		if n > 0 {
 			timeStr := timeFilter.FindStringSubmatch(string(buf[0:n]))
 			durationStr := durationFilter.FindStringSubmatch(string(buf[0:n]))

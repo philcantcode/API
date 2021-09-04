@@ -142,8 +142,8 @@ function processKeywords(str)
         for (var j = 0; j < keywords.length; j++)
         {
             var key = keywords[j].Keyword.split(" "); // Keyword
-            var lowCaseWord = words[i].toLowerCase();              // Lowercase <p> word
-            var caseWord = words[i];                      // <p> word with default casing
+            var lowCaseWord = words[i].toLowerCase(); // Lowercase <p> word
+            var caseWord = words[i];  // <p> word with default casing
 
             if (key.length == 1)
             {
@@ -160,6 +160,12 @@ function processKeywords(str)
             {
                 var perfectMultiKeyMatch = true;
                 var perfectMultiMatchStr = "";
+
+                // Handle the case where the word is longer than the keyword
+                if (key.length > words.length)
+                {
+                     break;
+                }
 
                 // Loop over each component in key
                 for (var k = 0; k < key.length; k++)
